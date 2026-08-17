@@ -41,14 +41,20 @@ export function ModalProvider({ children }: { children: ReactNode }) {
 
   const open = useCallback(
     (node: ReactNode, size: ModalSize = "md") => {
-      const id = ++idRef.current;
-      setModals((prev) => [...prev, { id, node, size }]);
-      return () => close(id);
+      idRef.current += 1;
+      const currentId = idRef.current;
+
+      setModals((prev) => [...prev, { id: currentId, node, size }]);
+
+      return () => close(currentId);
     },
-    [close],
+    [close]
   );
 
-  const value = useMemo<ModalContextValue>(() => ({ open, close }), [open, close]);
+  const value = useMemo<ModalContextValue>(
+    () => ({ open, close }),
+    [open, close]
+  );
 
   return (
     <ModalContext.Provider value={value}>
@@ -86,16 +92,20 @@ function ModalController({
     size === "sm"
       ? "modal-size-sm"
       : size === "lg"
-        ? "modal-size-lg"
-        : size === "xl"
-          ? "modal-size-xl"
-          : "modal-size-md";
+      ? "modal-size-lg"
+      : size === "xl"
+      ? "modal-size-xl"
+      : "modal-size-md";
 
   return (
     <Modal state={state}>
-      <Modal.Dialog className={cn("modal-dialog", sizeClass)}>
-        {children}
-      </Modal.Dialog>
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog className={cn("modal-dialog", sizeClass)}>
+            {children}
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
     </Modal>
   );
 }

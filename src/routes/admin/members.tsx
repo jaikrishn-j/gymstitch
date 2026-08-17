@@ -13,7 +13,7 @@ function RouteComponent() {
     toast.info("Use the dashboard to add a new member.");
   };
 
-  const handleRecordPayment = (data: PaymentData) => {
+  const handleRecordPayment = async (data: PaymentData) => {
     toast.success(`Payment of ₹${data.amount} recorded.`);
   };
 

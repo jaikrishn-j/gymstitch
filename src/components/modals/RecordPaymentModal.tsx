@@ -17,7 +17,7 @@ export type RecordPaymentModalProps = {
   memberName: string;
   memberId: string;
   memberMeta: string;
-  onSave: (data: PaymentData) => void;
+  onSave: (data: PaymentData) => Promise<void>;
   onClose?: () => void;
 };
 
@@ -41,6 +41,7 @@ export function RecordPaymentModal({
   onSave,
   onClose,
 }: RecordPaymentModalProps) {
+  const [saving, setSaving] = useState(false);
   const [planId, setPlanId] = useState("2999|90");
   const [amount, setAmount] = useState(2999);
   const [days, setDays] = useState(90);
@@ -58,9 +59,17 @@ export function RecordPaymentModal({
 
   const isCustom = planId === "0|custom";
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!amount || amount <= 0) return;
-    onSave({ planId, amount, days, method, notes });
+    setSaving(true);
+    try {
+      await onSave({ planId, amount, days, method, notes });
+      onClose?.();
+    } catch {
+      // Keep open
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -70,10 +79,12 @@ export function RecordPaymentModal({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onPress={onClose}>
+          <Button variant="secondary" onPress={onClose} isDisabled={saving}>
             Cancel
           </Button>
-          <Button onPress={handleSubmit}>Save payment & extend</Button>
+          <Button onPress={handleSubmit} isDisabled={saving}>
+            {saving ? "Saving..." : "Save payment & extend"}
+          </Button>
         </>
       }
     >

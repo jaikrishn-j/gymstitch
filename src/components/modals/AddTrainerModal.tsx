@@ -25,7 +25,7 @@ export type TrainerData = {
 };
 
 export type AddTrainerModalProps = {
-  onSave: (data: TrainerData) => void;
+  onSave: (data: TrainerData) => Promise<void>;
   onClose?: () => void;
 };
 
@@ -77,6 +77,7 @@ function defaultPermissions(): Record<string, Record<PermissionKey, boolean>> {
 }
 
 export function AddTrainerModal({ onSave, onClose }: AddTrainerModalProps) {
+  const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -111,9 +112,17 @@ export function AddTrainerModal({ onSave, onClose }: AddTrainerModalProps) {
       ) as Record<PermissionKey, boolean>,
     }));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!firstName.trim() || !email.trim()) return;
-    onSave({ firstName, lastName, email, role, permissions });
+    setSaving(true);
+    try {
+      await onSave({ firstName, lastName, email, role, permissions });
+      onClose?.();
+    } catch {
+      // Keep open
+    } finally {
+      setSaving(false);
+    }
   };
 
   const isAdmin = role === "admin";
@@ -125,10 +134,12 @@ export function AddTrainerModal({ onSave, onClose }: AddTrainerModalProps) {
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onPress={onClose}>
+          <Button variant="secondary" onPress={onClose} isDisabled={saving}>
             Cancel
           </Button>
-          <Button onPress={handleSubmit}>Create trainer & send invite</Button>
+          <Button onPress={handleSubmit} isDisabled={saving}>
+            {saving ? "Creating..." : "Create trainer & send invite"}
+          </Button>
         </>
       }
     >

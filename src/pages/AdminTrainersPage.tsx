@@ -17,7 +17,7 @@ type Trainer = {
 };
 
 export type AdminTrainersPageProps = {
-  onAddTrainer: (data: TrainerData) => void;
+  onAddTrainer: (data: TrainerData) => Promise<void>;
   onResetLink: (name: string) => void;
 };
 

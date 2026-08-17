@@ -13,11 +13,12 @@ export type PlanData = {
 };
 
 export type NewPlanModalProps = {
-  onSave: (data: PlanData) => void;
+  onSave: (data: PlanData) => Promise<void>;
   onClose?: () => void;
 };
 
 export function NewPlanModal({ onSave, onClose }: NewPlanModalProps) {
+  const [saving, setSaving] = useState(false);
   const [name, setName] = useState("Elite Pro");
   const [description, setDescription] = useState(
     "Full equipment access + locker room",
@@ -40,16 +41,24 @@ export function NewPlanModal({ onSave, onClose }: NewPlanModalProps) {
 
   const addFeature = () => setFeatures((prev) => [...prev, ""]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim()) return;
-    onSave({
-      name,
-      description,
-      price,
-      offerPrice,
-      days,
-      features: features.map((f) => f.trim()).filter(Boolean),
-    });
+    setSaving(true);
+    try {
+      await onSave({
+        name,
+        description,
+        price,
+        offerPrice,
+        days,
+        features: features.map((f) => f.trim()).filter(Boolean),
+      });
+      onClose?.();
+    } catch {
+      // Keep modal open on error
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -59,10 +68,12 @@ export function NewPlanModal({ onSave, onClose }: NewPlanModalProps) {
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onPress={onClose}>
+          <Button variant="secondary" onPress={onClose} isDisabled={saving}>
             Cancel
           </Button>
-          <Button onPress={handleSubmit}>Publish plan</Button>
+          <Button onPress={handleSubmit} isDisabled={saving}>
+            {saving ? "Publishing..." : "Publish plan"}
+          </Button>
         </>
       }
     >

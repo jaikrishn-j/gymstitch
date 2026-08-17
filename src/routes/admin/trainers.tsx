@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin/trainers")({
 });
 
 function RouteComponent() {
-  const handleAddTrainer = (data: TrainerData) => {
+  const handleAddTrainer = async (data: TrainerData) => {
     toast.success(`Trainer added: ${data.firstName} ${data.lastName}.`);
   };
 

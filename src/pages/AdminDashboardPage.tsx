@@ -19,10 +19,10 @@ import { AddEquipmentModal } from "../components/modals/AddEquipmentModal";
 import type { EquipmentData } from "../components/modals/AddEquipmentModal";
 
 export type AdminDashboardPageProps = {
-  onAddMember: (data: AddMemberData) => void;
-  onRecordPayment: (data: PaymentData) => void;
-  onNewPlan: (data: PlanData) => void;
-  onAddEquipment: (data: EquipmentData) => void;
+  onAddMember: (data: AddMemberData) => Promise<void>;
+  onRecordPayment: (data: PaymentData) => Promise<void>;
+  onNewPlan: (data: PlanData) => Promise<void>;
+  onAddEquipment: (data: EquipmentData) => Promise<void>;
   onApproveRequest: (member: string) => void;
   onRejectRequest: (member: string) => void;
   onLogout: () => void;

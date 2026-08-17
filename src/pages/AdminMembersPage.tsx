@@ -52,7 +52,7 @@ const STATUS_BADGE: Record<
 
 export type AdminMembersPageProps = {
   onAddMember: () => void;
-  onRecordPayment: (data: PaymentData) => void;
+  onRecordPayment: (data: PaymentData) => Promise<void>;
   onMarkAttendance: (member: Member) => void;
   onAssignPlan: (member: Member) => void;
 };
@@ -191,10 +191,7 @@ export function AdminMembersPage({
                 memberName={m.name}
                 memberId={`MBR-${m.id}`}
                 memberMeta={`${m.email} · ${m.phone}`}
-                onSave={(d) => {
-                  onRecordPayment(d);
-                  close();
-                }}
+                onSave={onRecordPayment}
                 onClose={() => close()}
               />,
               "md",
@@ -238,7 +235,7 @@ function MemberDetailModal({
       onClose={onClose}
       title={member.name}
       subtitle={`${member.email} · ${member.phone} · Member since Jan 2024`}
-      size="modal-size-lg"
+      size="lg"
       footer={
         <>
           <Button variant="secondary" onPress={onClose}>

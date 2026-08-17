@@ -58,7 +58,7 @@ const CHIPS: { key: string; label: string; count: number }[] = [
 ];
 
 export type AdminEquipmentPageProps = {
-  onAddEquipment: (data: EquipmentData) => void;
+  onAddEquipment: (data: EquipmentData) => Promise<void>;
   onToggleStatus: (name: string) => void;
 };
 

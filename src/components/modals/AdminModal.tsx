@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Modal, useOverlayState } from "@heroui/react";
+import { cn } from "@heroui/react";
 import { ModalShell } from "./ModalShell";
 
 export type AdminModalProps = {
@@ -8,7 +9,7 @@ export type AdminModalProps = {
   title: string;
   subtitle?: string;
   footer?: ReactNode;
-  size?: string;
+  size?: "sm" | "md" | "lg" | "xl";
   children: ReactNode;
 };
 
@@ -18,7 +19,7 @@ export function AdminModal({
   title,
   subtitle,
   footer,
-  size = "modal-size-md",
+  size = "md",
   children,
 }: AdminModalProps) {
   const state = useOverlayState({
@@ -27,13 +28,25 @@ export function AdminModal({
       if (!next) onClose();
     },
   });
+
+  const sizeClass = `modal-size-${size}`;
+
   return (
     <Modal state={state}>
-      <Modal.Dialog className={`modal-dialog ${size}`}>
-        <ModalShell title={title} subtitle={subtitle} onClose={onClose} footer={footer}>
-          {children}
-        </ModalShell>
-      </Modal.Dialog>
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog className={cn("modal-dialog", sizeClass)}>
+            <ModalShell
+              title={title}
+              subtitle={subtitle}
+              onClose={onClose}
+              footer={footer}
+            >
+              {children}
+            </ModalShell>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
     </Modal>
   );
 }

@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin/payments")({
 });
 
 function RouteComponent() {
-  const handleRecordPayment = (data: PaymentData) => {
+  const handleRecordPayment = async (data: PaymentData) => {
     toast.success(`Payment of ₹${data.amount} recorded.`);
   };
 

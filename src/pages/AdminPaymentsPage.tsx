@@ -30,7 +30,7 @@ const SOURCES = [
 ];
 
 export type AdminPaymentsPageProps = {
-  onRecordPayment: (data: PaymentData) => void;
+  onRecordPayment: (data: PaymentData) => Promise<void>;
   onPrintReceipt: () => void;
 };
 

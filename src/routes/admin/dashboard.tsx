@@ -21,19 +21,19 @@ function RouteComponent() {
     navigate({ to: "/login" });
   };
 
-  const handleAddMember = (data: AddMemberData) => {
+  const handleAddMember = async (data: AddMemberData) => {
     toast.success(`Member added: ${data.firstName} ${data.lastName}.`);
   };
 
-  const handleRecordPayment = (data: PaymentData) => {
+  const handleRecordPayment = async (data: PaymentData) => {
     toast.success(`Payment of ₹${data.amount} recorded.`);
   };
 
-  const handleNewPlan = (data: PlanData) => {
+  const handleNewPlan = async (data: PlanData) => {
     toast.success(`Plan created: ${data.name}.`);
   };
 
-  const handleAddEquipment = (data: EquipmentData) => {
+  const handleAddEquipment = async (data: EquipmentData) => {
     toast.success(`Equipment added: ${data.name}.`);
   };
 

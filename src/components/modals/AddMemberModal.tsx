@@ -18,7 +18,7 @@ export type AddMemberData = {
 };
 
 export type AddMemberModalProps = {
-  onSave: (data: AddMemberData) => void;
+  onSave: (data: AddMemberData) => Promise<void>;
   onClose?: () => void;
 };
 
@@ -41,6 +41,7 @@ const BLOOD_GROUPS = [
 ];
 
 export function AddMemberModal({ onSave, onClose }: AddMemberModalProps) {
+  const [saving, setSaving] = useState(false);
   const [data, setData] = useState<AddMemberData>({
     firstName: "",
     lastName: "",
@@ -58,7 +59,7 @@ export function AddMemberModal({ onSave, onClose }: AddMemberModalProps) {
   const set = <K extends keyof AddMemberData>(key: K, value: string) =>
     setData((prev) => ({ ...prev, [key]: value }));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (
       !data.firstName.trim() ||
       !data.lastName.trim() ||
@@ -67,7 +68,15 @@ export function AddMemberModal({ onSave, onClose }: AddMemberModalProps) {
     ) {
       return;
     }
-    onSave(data);
+    setSaving(true);
+    try {
+      await onSave(data);
+      onClose?.();
+    } catch {
+      // Keep open
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -77,10 +86,12 @@ export function AddMemberModal({ onSave, onClose }: AddMemberModalProps) {
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onPress={onClose}>
+          <Button variant="secondary" onPress={onClose} isDisabled={saving}>
             Cancel
           </Button>
-          <Button onPress={handleSubmit}>Create member</Button>
+          <Button onPress={handleSubmit} isDisabled={saving}>
+            {saving ? "Creating..." : "Create member"}
+          </Button>
         </>
       }
     >

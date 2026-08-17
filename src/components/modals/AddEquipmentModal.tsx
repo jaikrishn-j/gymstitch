@@ -15,7 +15,7 @@ export type EquipmentData = {
 };
 
 export type AddEquipmentModalProps = {
-  onSave: (data: EquipmentData) => void;
+  onSave: (data: EquipmentData) => Promise<void>;
   onClose?: () => void;
 };
 
@@ -30,6 +30,7 @@ export function AddEquipmentModal({
   onSave,
   onClose,
 }: AddEquipmentModalProps) {
+  const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Strength");
   const [status, setStatus] = useState("available");
@@ -42,18 +43,26 @@ export function AddEquipmentModal({
   const stepQuantity = (amount: number) =>
     setQuantity((prev) => Math.max(1, prev + amount));
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name.trim()) return;
-    onSave({
-      name,
-      category,
-      status,
-      quantity,
-      location,
-      purchaseDate,
-      maintenanceDate,
-      imageUrl,
-    });
+    setSaving(true);
+    try {
+      await onSave({
+        name,
+        category,
+        status,
+        quantity,
+        location,
+        purchaseDate,
+        maintenanceDate,
+        imageUrl,
+      });
+      onClose?.();
+    } catch {
+      // Keep open
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -63,10 +72,12 @@ export function AddEquipmentModal({
       onClose={onClose}
       footer={
         <>
-          <Button variant="secondary" onPress={onClose}>
+          <Button variant="secondary" onPress={onClose} isDisabled={saving}>
             Cancel
           </Button>
-          <Button onPress={handleSubmit}>Add equipment</Button>
+          <Button onPress={handleSubmit} isDisabled={saving}>
+            {saving ? "Adding..." : "Add equipment"}
+          </Button>
         </>
       }
     >

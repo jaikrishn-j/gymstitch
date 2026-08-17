@@ -4,65 +4,16 @@ import { AdminShell, Badge, Button, cn } from "../components/ui";
 import { useModal } from "../components/providers/ModalProvider";
 import { NewPlanModal } from "../components/modals/NewPlanModal";
 import type { PlanData } from "../components/modals/NewPlanModal";
-
-type PlanRow = {
-  name: string;
-  price: string;
-  billing: string;
-  features: string[];
-  status: "active" | "paused";
-  featured?: boolean;
-  desc: string;
-  priceNote?: string;
-  bill: string;
-};
-
-const PLANS: PlanRow[] = [
-  {
-    name: "Monthly Starter",
-    desc: "Get stronger, month by month flexibility.",
-    price: "₹899",
-    priceNote: "₹1,099",
-    bill: "per month · 30 days billing",
-    billing: "30 days",
-    features: ["Full gym floor access", "1 PT assessment session", "Locker & shower access"],
-    status: "active",
-    featured: true,
-  },
-  {
-    name: "Quarterly Pro",
-    desc: "Commit to 3 months of consistent progress.",
-    price: "₹2,499",
-    bill: "per quarter · 90 days billing",
-    billing: "90 days",
-    features: ["Everything in Monthly Starter", "2 PT sessions included"],
-    status: "active",
-  },
-  {
-    name: "Annual Unlimited",
-    desc: "Best value for dedicated long-term fitness.",
-    price: "₹5,999",
-    priceNote: "₹9,899",
-    bill: "per year · 365 days billing",
-    billing: "365 days",
-    features: ["Everything in Quarterly Pro", "Freezable up to 30 days", "6 PT sessions included"],
-    status: "active",
-  },
-];
-
-const TABLE_ROWS: { name: string; price: string; billing: string; features: number; status: "active" | "paused" }[] = [
-  { name: "Monthly Starter", price: "₹899", billing: "30 days", features: 3, status: "active" },
-  { name: "Quarterly Pro", price: "₹2,499", billing: "90 days", features: 2, status: "active" },
-  { name: "Annual Unlimited", price: "₹5,999", billing: "365 days", features: 3, status: "active" },
-  { name: "Student Tier", price: "₹699", billing: "30 days", features: 2, status: "paused" },
-];
+import type { PlanRow } from "../routes/admin/plans";
 
 export type AdminPlansPageProps = {
-  onNewPlan: (data: PlanData) => void;
-  onTogglePlan: (name: string) => void;
+  plans: PlanRow[];
+  loading: boolean;
+  onNewPlan: (data: PlanData) => Promise<void>;
+  onTogglePlan: (id: string) => void;
 };
 
-export function AdminPlansPage({ onNewPlan, onTogglePlan }: AdminPlansPageProps) {
+export function AdminPlansPage({ plans, loading, onNewPlan, onTogglePlan }: AdminPlansPageProps) {
   const [view, setView] = useState<"grid" | "table">("grid");
   const { open } = useModal();
 
@@ -71,6 +22,18 @@ export function AdminPlansPage({ onNewPlan, onTogglePlan }: AdminPlansPageProps)
       <NewPlanModal onSave={onNewPlan} onClose={() => close()} />,
       "md",
     );
+  };
+
+  const activePlans = plans.filter((p) => p.status === "active");
+  const pausedPlans = plans.filter((p) => p.status === "paused");
+  const mostPopular = plans.find((p) => p.featured) ?? plans[0];
+
+  const formatPrice = (price: number) => `₹${price.toLocaleString("en-IN")}`;
+
+  const formatBill = (days: number) => {
+    if (days >= 365) return `per year · ${days} days billing`;
+    if (days >= 90) return `per quarter · ${days} days billing`;
+    return `per month · ${days} days billing`;
   };
 
   return (
@@ -112,34 +75,42 @@ export function AdminPlansPage({ onNewPlan, onTogglePlan }: AdminPlansPageProps)
           <div className="top">
             <span className="stat-label">Active plans</span>
           </div>
-          <div className="stat-num">4</div>
+          <div className="stat-num">{activePlans.length}</div>
         </div>
         <div className="card stat-card card-hover reveal">
           <div className="top">
             <span className="stat-label">Most popular</span>
           </div>
-          <div className="stat-num">Monthly</div>
+          <div className="stat-num">{mostPopular?.name ?? "—"}</div>
         </div>
         <div className="card stat-card card-hover reveal">
           <div className="top">
             <span className="stat-label">Paused tiers</span>
           </div>
-          <div className="stat-num">1</div>
+          <div className="stat-num">{pausedPlans.length}</div>
         </div>
       </div>
 
-      {view === "grid" ? (
+      {loading ? (
+        <div className="card" style={{ padding: "3rem", textAlign: "center", color: "var(--muted)" }}>
+          Loading plans…
+        </div>
+      ) : plans.length === 0 ? (
+        <div className="card" style={{ padding: "3rem", textAlign: "center", color: "var(--muted)" }}>
+          No plans yet. Create your first plan to get started.
+        </div>
+      ) : view === "grid" ? (
         <div className="plan-grid">
-          {PLANS.map((p) => (
-            <div key={p.name} className={cn("card plan-card2 card-hover reveal", p.featured && "featured")}>
+          {plans.map((p) => (
+            <div key={p.id} className={cn("card plan-card2 card-hover reveal", p.featured && "featured")}>
               {p.featured ? <div className="feature-tag">Most popular</div> : null}
               <div className="p-name">{p.name}</div>
-              <div className="p-desc">{p.desc}</div>
+              <div className="p-desc">{p.description}</div>
               <div className="p-price">
-                <b>{p.price}</b>
-                {p.priceNote ? <s>{p.priceNote}</s> : null}
+                <b>{formatPrice(p.price)}</b>
+                {p.offerPrice ? <s>{formatPrice(Number(p.offerPrice))}</s> : null}
               </div>
-              <div className="p-bill">{p.bill}</div>
+              <div className="p-bill">{formatBill(p.days)}</div>
               <ul className="p-feats">
                 {p.features.map((f) => (
                   <li key={f}>
@@ -156,7 +127,7 @@ export function AdminPlansPage({ onNewPlan, onTogglePlan }: AdminPlansPageProps)
                   type="button"
                   className="icon-btn"
                   aria-label="Toggle active"
-                  onClick={() => onTogglePlan(p.name)}
+                  onClick={() => onTogglePlan(p.id)}
                 >
                   <RefreshCcw size={16} />
                 </button>
@@ -178,16 +149,16 @@ export function AdminPlansPage({ onNewPlan, onTogglePlan }: AdminPlansPageProps)
               </tr>
             </thead>
             <tbody>
-              {TABLE_ROWS.map((row) => (
-                <tr key={row.name}>
+              {plans.map((row) => (
+                <tr key={row.id}>
                   <td data-label="Plan">
                     <b>{row.name}</b>
                   </td>
                   <td data-label="Price" className="amt">
-                    {row.price}
+                    {formatPrice(row.price)}
                   </td>
-                  <td data-label="Billing">{row.billing}</td>
-                  <td data-label="Features">{row.features}</td>
+                  <td data-label="Billing">{row.days} days</td>
+                  <td data-label="Features">{row.features.length}</td>
                   <td data-label="Status">
                     <Badge
                       color={row.status === "active" ? "success" : "default"}
