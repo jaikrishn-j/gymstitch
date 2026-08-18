@@ -47,6 +47,7 @@ export function AuthProvider({
             email: firebaseUser.email ?? '',
             name: firebaseUser.displayName ?? '',
             role: data.role,
+            permission: data.permission ?? undefined,
           })
         } catch (error) {
           console.error('Failed to initialize auth:', error)

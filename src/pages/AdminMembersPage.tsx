@@ -10,6 +10,8 @@ import { AdminModal } from "../components/modals/AdminModal";
 import { useModal } from "../components/providers/ModalProvider";
 import { RecordPaymentModal } from "../components/modals/RecordPaymentModal";
 import type { PaymentData } from "../components/modals/RecordPaymentModal";
+import { AddMemberModal } from "../components/modals/AddMemberModal";
+import type { AddMemberData } from "../components/modals/AddMemberModal";
 
 export type Member = {
   id: string;
@@ -51,7 +53,7 @@ const STATUS_BADGE: Record<
 };
 
 export type AdminMembersPageProps = {
-  onAddMember: () => void;
+  onAddMember: (data: AddMemberData) => Promise<void>;
   onRecordPayment: (data: PaymentData) => Promise<void>;
   onMarkAttendance: (member: Member) => void;
   onAssignPlan: (member: Member) => void;
@@ -94,6 +96,19 @@ export function AdminMembersPage({
     );
   };
 
+  const openAddMember = () => {
+    const close = open(
+      <AddMemberModal
+        onSave={async (data) => {
+          await onAddMember(data);
+          close();
+        }}
+        onClose={() => close()}
+      />,
+      "lg",
+    );
+  };
+
   return (
     <AdminShell
       title="Member Management"
@@ -126,7 +141,7 @@ export function AdminMembersPage({
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <Button variant="secondary" onPress={onAddMember}>
+        <Button variant="secondary" onPress={openAddMember}>
           + Add member
         </Button>
         <Button onPress={() => openPaymentModal()}>+ Record payment</Button>

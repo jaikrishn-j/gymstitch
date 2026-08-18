@@ -13,9 +13,4 @@ export type { NewPlanModalProps, PlanData } from "./NewPlanModal";
 export { AddEquipmentModal } from "./AddEquipmentModal";
 export type { AddEquipmentModalProps, EquipmentData } from "./AddEquipmentModal";
 export { AddTrainerModal } from "./AddTrainerModal";
-export type {
-  AddTrainerModalProps,
-  PermissionKey,
-  TrainerData,
-  TrainerRole,
-} from "./AddTrainerModal";
+export type { AddTrainerModalProps, TrainerData, TrainerRole } from "./AddTrainerModal";

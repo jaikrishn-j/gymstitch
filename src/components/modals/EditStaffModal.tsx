@@ -5,26 +5,28 @@ import {
   Dumbbell,
   FileText,
   LayoutGrid,
+  KeyRound,
   ShieldCheck,
   Users,
 } from "lucide-react";
 import { cn } from "@heroui/react";
-import { Button, Input } from "../ui";
+import { Button } from "../ui";
 import { ModalShell } from "./ModalShell";
+import type { TrainerRole } from "./AddTrainerModal";
 import type { PermLevel, PermModule, Permission } from "../../auth/auth-types";
 
-export type TrainerRole = "staff" | "admin";
-
-export type TrainerData = {
-  firstName: string;
-  lastName: string;
+export type EditStaffData = {
+  uid: string;
+  name: string;
   email: string;
   role: TrainerRole;
   permission?: Permission;
 };
 
-export type AddTrainerModalProps = {
-  onSave: (data: TrainerData) => Promise<void>;
+export type EditStaffModalProps = {
+  staff: EditStaffData;
+  onSave: (data: { role: TrainerRole; permission?: Permission }) => Promise<void>;
+  onResetLink: (uid: string) => Promise<string>;
   onClose?: () => void;
 };
 
@@ -62,42 +64,61 @@ const MODULES: ModuleDef[] = [
   },
 ];
 
-const LEVELS: { value: PermLevel | null; label: string; hint: string }[] = [
-  { value: null, label: "None", hint: "Restricted" },
-  { value: "read", label: "Read", hint: "View only" },
-  { value: "full", label: "Full", hint: "Full access" },
+const LEVELS: { value: PermLevel | null; label: string }[] = [
+  { value: null, label: "None" },
+  { value: "read", label: "Read" },
+  { value: "full", label: "Full" },
 ];
 
-function defaultPermission(): Permission {
-  return {
-    member: "read",
-    plan: null,
-    equipment: null,
-    payments: null,
-  };
-}
-
-export function AddTrainerModal({ onSave, onClose }: AddTrainerModalProps) {
+export function EditStaffModal({
+  staff,
+  onSave,
+  onResetLink,
+  onClose,
+}: EditStaffModalProps) {
   const [saving, setSaving] = useState(false);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<TrainerRole>("staff");
-  const [permission, setPermission] = useState<Permission>(defaultPermission);
+  const [role, setRole] = useState<TrainerRole>(staff.role);
+  const [permission, setPermission] = useState<Permission>(
+    staff.permission ?? {
+      member: null,
+      plan: null,
+      equipment: null,
+      payments: null,
+    },
+  );
+  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [loadingReset, setLoadingReset] = useState(false);
+
+  const isAdmin = role === "admin";
 
   const setLevel = (module: PermModule, level: PermLevel | null) =>
     setPermission((prev) => ({ ...prev, [module]: level }));
 
-  const handleSubmit = async () => {
-    if (!firstName.trim() || !email.trim()) return;
+  const handleGenerateResetLink = async () => {
+    setLoadingReset(true);
+    try {
+      const link = await onResetLink(staff.uid);
+      setResetLink(link);
+    } catch {
+      // Keep open
+    } finally {
+      setLoadingReset(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    if (!resetLink) return;
+    try {
+      await navigator.clipboard.writeText(resetLink);
+    } catch {
+      // Clipboard unavailable
+    }
+  };
+
+  const handleSave = async () => {
     setSaving(true);
     try {
-      const payload: TrainerData = {
-        firstName,
-        lastName,
-        email,
-        role,
-      };
+      const payload: { role: TrainerRole; permission?: Permission } = { role };
       if (role === "staff") payload.permission = permission;
       await onSave(payload);
       onClose?.();
@@ -108,47 +129,22 @@ export function AddTrainerModal({ onSave, onClose }: AddTrainerModalProps) {
     }
   };
 
-  const isAdmin = role === "admin";
-
   return (
     <ModalShell
-      title="Add staff member / trainer"
-      subtitle="Create staff account with role assignments & module permissions."
+      title={`Edit permissions · ${staff.name}`}
+      subtitle={staff.email}
       onClose={onClose}
       footer={
         <>
           <Button variant="secondary" onPress={onClose} isDisabled={saving}>
             Cancel
           </Button>
-          <Button onPress={handleSubmit} isDisabled={saving}>
-            {saving ? "Creating..." : "Create staff & send invite"}
+          <Button onPress={handleSave} isDisabled={saving}>
+            {saving ? "Saving..." : "Save changes"}
           </Button>
         </>
       }
     >
-      <div className="form-grid">
-        <Input
-          label="First name *"
-          placeholder="Arjun"
-          value={firstName}
-          onValueChange={setFirstName}
-          autoFocus
-        />
-        <Input
-          label="Last name *"
-          placeholder="Rao"
-          value={lastName}
-          onValueChange={setLastName}
-        />
-      </div>
-      <Input
-        label="Email address *"
-        placeholder="arjun@gymstitch.in"
-        type="email"
-        value={email}
-        onValueChange={setEmail}
-      />
-
       <div className="sec-t">
         <ShieldCheck size={16} />
         Role selection
@@ -202,19 +198,40 @@ export function AddTrainerModal({ onSave, onClose }: AddTrainerModalProps) {
                   </button>
                 ))}
               </div>
-              <div className="perm-preset">
-                <span>
-                  {permission[module.key] === "full"
-                    ? "Full access"
-                    : permission[module.key] === "read"
-                      ? "Read only"
-                      : "Completely restricted"}
-                </span>
-              </div>
             </div>
           </div>
         ))}
       </div>
+
+      <div className="sec-t">
+        <KeyRound size={16} />
+        Password reset
+      </div>
+      {resetLink ? (
+        <div className="field">
+          <span className="mb-1.5 block text-[13px] font-semibold text-fg">
+            Secure reset link
+          </span>
+          <input className="input mono" readOnly value={resetLink} />
+          <Button
+            fullWidth
+            variant="secondary"
+            className="mt-2"
+            onPress={handleCopy}
+          >
+            Copy link
+          </Button>
+        </div>
+      ) : (
+        <Button
+          fullWidth
+          variant="secondary"
+          isDisabled={loadingReset}
+          onPress={handleGenerateResetLink}
+        >
+          {loadingReset ? "Generating..." : "Generate reset link"}
+        </Button>
+      )}
     </ModalShell>
   );
 }

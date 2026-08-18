@@ -1,4 +1,4 @@
-import type { AuthState, UserRole } from "./auth-types";
+import type { AuthState, PermModule, UserRole } from "./auth-types";
 import { redirect } from '@tanstack/react-router'
 
 export function requireAuth(auth: AuthState) {
@@ -32,4 +32,21 @@ export function requireGuest(auth: AuthState) {
       to: '/dashboard',
     })
   }
+}
+
+export function requirePermission(
+  auth: AuthState,
+  module: PermModule,
+) {
+  const user = requireRole(auth, ['admin', 'staff'])
+
+  if (user.role === 'admin') return user
+
+  if (user.permission?.[module] != null) {
+    return user
+  }
+
+  throw redirect({
+    to: '/dashboard',
+  })
 }

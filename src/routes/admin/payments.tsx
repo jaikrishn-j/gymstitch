@@ -1,9 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "@heroui/react";
+import { requirePermission } from "../../auth/guard";
 import { AdminPaymentsPage } from "../../pages/AdminPaymentsPage";
 import type { PaymentData } from "../../components/modals/RecordPaymentModal";
 
 export const Route = createFileRoute("/admin/payments")({
+  beforeLoad: ({ context }) => {
+    requirePermission(context.auth, "payments");
+  },
   component: RouteComponent,
 });
 

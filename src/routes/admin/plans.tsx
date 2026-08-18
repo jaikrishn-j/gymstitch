@@ -9,6 +9,7 @@ import {
   doc,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { requirePermission } from "../../auth/guard";
 import { AdminPlansPage } from "../../pages/AdminPlansPage";
 import type { PlanData } from "../../components/modals/NewPlanModal";
 
@@ -25,6 +26,9 @@ export type PlanRow = {
 };
 
 export const Route = createFileRoute("/admin/plans")({
+  beforeLoad: ({ context }) => {
+    requirePermission(context.auth, "plan");
+  },
   component: RouteComponent,
 });
 
