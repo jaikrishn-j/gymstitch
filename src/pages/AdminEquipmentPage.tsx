@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { GridIcon, ListIcon, RefreshCcw } from "lucide-react";
-import { AdminShell, Badge, Button, cn } from "../components/ui";
+import { AdminShell, Chip, Button, cn } from "../components/ui";
 import { useModal } from "../components/providers/ModalProvider";
 import { AddEquipmentModal } from "../components/modals/AddEquipmentModal";
 import type { EquipmentData } from "../components/modals/AddEquipmentModal";
@@ -222,13 +222,13 @@ export function AdminEquipmentPage({
                   <td data-label="Category">{item.category}</td>
                   <td data-label="Qty">{item.qty}</td>
                   <td data-label="Status">
-                    <Badge
+                    <Chip
                       color={item.status === "available" ? "success" : "warning"}
                       variant="soft"
                       size="sm"
                     >
                       {item.status === "available" ? "Available" : "Maintenance"}
-                    </Badge>
+                    </Chip>
                   </td>
                   <td data-label="Next maintenance">
                     {item.overdue ? (

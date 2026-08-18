@@ -7,8 +7,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AlertDialog, useOverlayState } from "@heroui/react";
+import { Modal, useOverlayState, cn } from "@heroui/react";
 import { Button } from "../ui";
+import { ModalShell } from "../modals/ModalShell";
 
 export type ConfirmTone = "danger" | "accent" | "warning" | "success";
 
@@ -72,41 +73,43 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
     <ConfirmContext.Provider value={value}>
       {children}
       {options ? (
-        <AlertDialog
-          isOpen={state.isOpen}
-          onOpenChange={state.setOpen}
-        >
-          <AlertDialog.Container placement="center" size="xs">
-            <AlertDialog.Dialog>
-              <AlertDialog.Icon status={options.tone ?? "danger"} />
-              <AlertDialog.Heading>{options.title}</AlertDialog.Heading>
-              {options.description ? (
-                <AlertDialog.Body>
-                  <p className="text-sm text-muted">{options.description}</p>
-                </AlertDialog.Body>
-              ) : null}
-              <AlertDialog.Footer>
-                <Button variant="ghost" onPress={() => settle(false)}>
-                  {options.cancelLabel ?? "Cancel"}
-                </Button>
-                <Button
-                  variant={
-                    options.tone === "warning"
-                      ? "warn"
-                      : options.tone === "success"
-                        ? "success"
-                        : options.tone === "accent"
-                          ? "primary"
-                          : "danger"
+        <Modal state={state}>
+          <Modal.Backdrop>
+            <Modal.Container>
+              <Modal.Dialog className={cn("modal-dialog", "modal-size-sm")}>
+                <ModalShell
+                  title={options.title}
+                  onClose={() => settle(false)}
+                  footer={
+                    <>
+                      <Button variant="ghost" onPress={() => settle(false)}>
+                        {options.cancelLabel ?? "Cancel"}
+                      </Button>
+                      <Button
+                        variant={
+                          options.tone === "warning"
+                            ? "warn"
+                            : options.tone === "success"
+                              ? "success"
+                              : options.tone === "accent"
+                                ? "primary"
+                                : "danger"
+                        }
+                        onPress={() => settle(true)}
+                      >
+                        {options.confirmLabel ?? "Confirm"}
+                      </Button>
+                    </>
                   }
-                  onPress={() => settle(true)}
                 >
-                  {options.confirmLabel ?? "Confirm"}
-                </Button>
-              </AlertDialog.Footer>
-            </AlertDialog.Dialog>
-          </AlertDialog.Container>
-        </AlertDialog>
+                  {options.description ? (
+                    <p className="text-sm text-muted">{options.description}</p>
+                  ) : null}
+                </ModalShell>
+              </Modal.Dialog>
+            </Modal.Container>
+          </Modal.Backdrop>
+        </Modal>
       ) : null}
     </ConfirmContext.Provider>
   );

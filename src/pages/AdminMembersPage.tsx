@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import {
   AdminShell,
-  Badge,
+  Chip,
   Button,
   cn,
 } from "../components/ui";
@@ -172,9 +172,9 @@ export function AdminMembersPage({
                 </td>
                 <td>{m.plan}</td>
                 <td>
-                  <Badge color={STATUS_BADGE[m.status].tone} variant="soft" size="sm">
+                  <Chip color={STATUS_BADGE[m.status].tone} variant="soft" size="sm">
                     {STATUS_BADGE[m.status].label}
-                  </Badge>
+                  </Chip>
                 </td>
                 <td className="td-right amt">{m.expires}</td>
                 <td className="td-right">
@@ -351,9 +351,9 @@ function MemberDetailModal({
           </div>
           <div className="flex items-center justify-between">
             <h3 style={{ fontSize: 16 }}>Payment ledger history</h3>
-            <Badge color="success" variant="soft" size="sm">
+            <Chip color="success" variant="soft" size="sm">
               Verified
-            </Badge>
+            </Chip>
           </div>
           <div className="table-wrap">
             <table className="table">

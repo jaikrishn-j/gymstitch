@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { CalendarCheck, CreditCard, Megaphone, ShoppingCart, UserPlus, Wrench } from "lucide-react";
 import {
   AdminShell,
-  Badge,
+  Chip,
   Button,
   cn,
 } from "../components/ui";
@@ -309,9 +309,9 @@ export function AdminDashboardPage({
             }}
           >
             <h3 style={{ fontSize: 17 }}>Member growth</h3>
-            <Badge color="success" variant="soft" size="sm">
+            <Chip color="success" variant="soft" size="sm">
               +12.4%
-            </Badge>
+            </Chip>
           </div>
           <div style={{ padding: "14px 20px 22px" }}>
             <div className="mini-bars">
@@ -360,7 +360,7 @@ export function AdminDashboardPage({
                 <div className="font-semibold">Aarav Singh</div>
                 <div className="muted small">UPI · ₹2,999</div>
               </div>
-              <Badge color="success" variant="soft" size="sm">Paid</Badge>
+              <Chip color="success" variant="soft" size="sm">Paid</Chip>
             </div>
             <div className="t-row">
               <Initials tone="info">PK</Initials>
@@ -368,7 +368,7 @@ export function AdminDashboardPage({
                 <div className="font-semibold">Priya Kumar</div>
                 <div className="muted small">Card · ₹5,499</div>
               </div>
-              <Badge color="success" variant="soft" size="sm">Paid</Badge>
+              <Chip color="success" variant="soft" size="sm">Paid</Chip>
             </div>
             <div className="t-row">
               <Initials tone="warn">RM</Initials>
@@ -376,7 +376,7 @@ export function AdminDashboardPage({
                 <div className="font-semibold">Rahul Mehta</div>
                 <div className="muted small">Cash · ₹1,499 · offline</div>
               </div>
-              <Badge color="warning" variant="soft" size="sm">Pending</Badge>
+              <Chip color="warning" variant="soft" size="sm">Pending</Chip>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { AdminShell, Badge, Button } from "../components/ui";
+import { AdminShell, Chip, Button } from "../components/ui";
 import { AdminModal } from "../components/modals/AdminModal";
 import { useModal } from "../components/providers/ModalProvider";
 import { RecordPaymentModal } from "../components/modals/RecordPaymentModal";
@@ -137,13 +137,13 @@ export function AdminPaymentsPage({
                     {t.date}
                   </td>
                   <td data-label="Status" className="td-right">
-                    <Badge
+                    <Chip
                       color={t.status === "paid" ? "success" : "warning"}
                       variant="soft"
                       size="sm"
                     >
                       {t.status === "paid" ? "Paid" : "Pending"}
-                    </Badge>
+                    </Chip>
                   </td>
                   <td className="td-right">
                     <Button variant="ghost" size="sm" onPress={() => setDetail(t)}>

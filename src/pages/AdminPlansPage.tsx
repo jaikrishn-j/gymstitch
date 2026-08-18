@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { GridIcon, ListIcon, RefreshCcw } from "lucide-react";
-import { AdminShell, Badge, Button, cn } from "../components/ui";
+import { Tooltip } from "@heroui/react";
+import { AdminShell, Chip, Button, cn } from "../components/ui";
 import { useModal } from "../components/providers/ModalProvider";
+import { useConfirm } from "../components/providers/ConfirmProvider";
 import { NewPlanModal } from "../components/modals/NewPlanModal";
 import type { PlanData } from "../components/modals/NewPlanModal";
 import type { PlanRow } from "../routes/admin/plans";
@@ -10,16 +12,35 @@ export type AdminPlansPageProps = {
   plans: PlanRow[];
   loading: boolean;
   onNewPlan: (data: PlanData) => Promise<void>;
+  onUpdatePlan: (id: string, data: PlanData) => Promise<void>;
   onTogglePlan: (id: string) => void;
 };
 
-export function AdminPlansPage({ plans, loading, onNewPlan, onTogglePlan }: AdminPlansPageProps) {
+export function AdminPlansPage({ plans, loading, onNewPlan, onUpdatePlan, onTogglePlan }: AdminPlansPageProps) {
   const [view, setView] = useState<"grid" | "table">("grid");
   const { open } = useModal();
+  const { confirm } = useConfirm();
 
-  const openPlanModal = () => {
+  const handleToggleClick = async (p: PlanRow) => {
+    const isPausing = p.status === "active";
+    const ok = await confirm({
+      title: isPausing ? `Pause "${p.name}"?` : `Activate "${p.name}"?`,
+      description: isPausing
+        ? "This plan will be paused. Existing members on this plan will continue until their billing cycle ends, but renewals and new members will no longer be able to select it."
+        : "This plan will be activated and available again for new members and renewals.",
+      tone: isPausing ? "warning" : "success",
+      confirmLabel: isPausing ? "Yes, pause plan" : "Yes, activate plan",
+    });
+    if (ok) onTogglePlan(p.id);
+  };
+
+  const openPlanModal = (plan?: PlanRow) => {
     const close = open(
-      <NewPlanModal onSave={onNewPlan} onClose={() => close()} />,
+      <NewPlanModal
+        initial={plan}
+        onSave={(data) => (plan ? onUpdatePlan(plan.id, data) : onNewPlan(data))}
+        onClose={() => close()}
+      />,
       "md",
     );
   };
@@ -66,7 +87,7 @@ export function AdminPlansPage({ plans, loading, onNewPlan, onTogglePlan }: Admi
               <ListIcon />
             </button>
           </div>
-          <Button onPress={openPlanModal}>+ New plan</Button>
+          <Button onPress={() => openPlanModal()}>+ New plan</Button>
         </div>
       </div>
 
@@ -102,13 +123,21 @@ export function AdminPlansPage({ plans, loading, onNewPlan, onTogglePlan }: Admi
       ) : view === "grid" ? (
         <div className="plan-grid">
           {plans.map((p) => (
-            <div key={p.id} className={cn("card plan-card2 card-hover reveal", p.featured && "featured")}>
-              {p.featured ? <div className="feature-tag">Most popular</div> : null}
-              <div className="p-name">{p.name}</div>
+              <div className={cn("card plan-card2 card-hover reveal", p.featured && "featured", p.status === "paused" && "plan-paused")}>
+                {p.featured ? <div className="feature-tag">Most popular</div> : null}
+
+              <div className="p-name">
+                {p.name}
+                {p.status === "paused" && (
+                  <Chip color="default" variant="soft" size="sm" className="paused-badge">
+                    Paused
+                  </Chip>
+                )}
+              </div>
               <div className="p-desc">{p.description}</div>
               <div className="p-price">
-                <b>{formatPrice(p.price)}</b>
-                {p.offerPrice ? <s>{formatPrice(Number(p.offerPrice))}</s> : null}
+                {p.offerPrice ? <s>{formatPrice(p.price)}</s> : null}
+                <b>{formatPrice(p.offerPrice ? Number(p.offerPrice) : p.price)}</b>
               </div>
               <div className="p-bill">{formatBill(p.days)}</div>
               <ul className="p-feats">
@@ -120,23 +149,30 @@ export function AdminPlansPage({ plans, loading, onNewPlan, onTogglePlan }: Admi
                 ))}
               </ul>
               <div className="p-foot">
-                <Button variant="secondary" size="sm" onPress={openPlanModal}>
+                <Button variant="secondary" size="sm" onPress={() => openPlanModal(p)}>
                   Edit plan
                 </Button>
-                <button
-                  type="button"
-                  className="icon-btn"
-                  aria-label="Toggle active"
-                  onClick={() => onTogglePlan(p.id)}
-                >
-                  <RefreshCcw size={16} />
-                </button>
+                <Tooltip.Root delay={150}>
+                  <Tooltip.Trigger>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label={p.status === "active" ? "Pause plan" : "Activate plan"}
+                      onClick={() => handleToggleClick(p)}
+                    >
+                      <RefreshCcw size={16} />
+                    </button>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>
+                    {p.status === "active" ? "Pause plan" : "Activate plan"}
+                  </Tooltip.Content>
+                </Tooltip.Root>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="card" style={{ overflow: "hidden" }}>
+        <div className="card" style={{ overflowX: "auto" }}>
           <table className="table table-responsive">
             <thead>
               <tr>
@@ -160,16 +196,16 @@ export function AdminPlansPage({ plans, loading, onNewPlan, onTogglePlan }: Admi
                   <td data-label="Billing">{row.days} days</td>
                   <td data-label="Features">{row.features.length}</td>
                   <td data-label="Status">
-                    <Badge
+                    <Chip
                       color={row.status === "active" ? "success" : "default"}
                       variant="soft"
                       size="sm"
                     >
                       {row.status === "active" ? "Active" : "Paused"}
-                    </Badge>
+                    </Chip>
                   </td>
                   <td className="td-right thide">
-                    <Button variant="ghost" size="sm" onPress={openPlanModal}>
+                    <Button variant="ghost" size="sm" onPress={() => openPlanModal(row)}>
                       Edit
                     </Button>
                   </td>

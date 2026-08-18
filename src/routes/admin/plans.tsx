@@ -84,6 +84,25 @@ function RouteComponent() {
     }
   };
 
+  const handleUpdatePlan = async (id: string, data: PlanData) => {
+    try {
+      await updateDoc(doc(db, "plans", id), {
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        offerPrice: data.offerPrice,
+        days: data.days,
+        features: data.features,
+      });
+      toast.success(`Plan updated: ${data.name}.`);
+      fetchPlans();
+    } catch (error) {
+      console.error(error);
+      toast("Failed to update plan.", { variant: "danger" });
+      throw error;
+    }
+  };
+
   const handleTogglePlan = async (id: string) => {
     const plan = plans.find((p) => p.id === id);
     if (!plan) return;
@@ -102,6 +121,7 @@ function RouteComponent() {
       plans={plans}
       loading={loading}
       onNewPlan={handleNewPlan}
+      onUpdatePlan={handleUpdatePlan}
       onTogglePlan={handleTogglePlan}
     />
   );

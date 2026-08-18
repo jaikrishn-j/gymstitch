@@ -702,6 +702,9 @@ textarea.input:focus {
 .td-right {
   text-align: right;
 }
+.table-responsive {
+  min-width: 720px;
+}
 
 /* ============================================================
    Charts / visualizations
@@ -1653,6 +1656,14 @@ textarea.input:focus {
 .plan-card2.featured {
   border-color: var(--color-accent);
   box-shadow: 0 10px 34px color-mix(in oklch, var(--color-accent) 18%, transparent);
+}
+.plan-paused {
+  opacity: 0.6;
+}
+.paused-badge {
+  display: inline-flex;
+  margin-left: 8px;
+  vertical-align: middle;
 }
 .feature-tag {
   position: absolute;

@@ -15,21 +15,23 @@ export type PlanData = {
 export type NewPlanModalProps = {
   onSave: (data: PlanData) => Promise<void>;
   onClose?: () => void;
+  initial?: PlanData;
 };
 
-export function NewPlanModal({ onSave, onClose }: NewPlanModalProps) {
+export function NewPlanModal({ onSave, onClose, initial }: NewPlanModalProps) {
   const [saving, setSaving] = useState(false);
-  const [name, setName] = useState("Elite Pro");
+  const [name, setName] = useState(initial?.name ?? "Elite Pro");
   const [description, setDescription] = useState(
-    "Full equipment access + locker room",
+    initial?.description ?? "Full equipment access + locker room",
   );
-  const [price, setPrice] = useState(2999);
-  const [offerPrice, setOfferPrice] = useState("");
-  const [days, setDays] = useState(90);
-  const [features, setFeatures] = useState<string[]>([
-    "Full equipment access",
-    "Locker room & shower access",
-  ]);
+  const [price, setPrice] = useState(initial?.price ?? 2999);
+  const [offerPrice, setOfferPrice] = useState(initial?.offerPrice ?? "");
+  const [days, setDays] = useState(initial?.days ?? 90);
+  const [features, setFeatures] = useState<string[]>(
+    initial?.features?.length
+      ? initial.features
+      : ["Full equipment access", "Locker room & shower access"],
+  );
 
   const updateFeature = (index: number, value: string) =>
     setFeatures((prev) =>
@@ -63,8 +65,12 @@ export function NewPlanModal({ onSave, onClose }: NewPlanModalProps) {
 
   return (
     <ModalShell
-      title="New membership plan"
-      subtitle="Create a structured pricing tier with duration & features."
+      title={initial ? "Edit membership plan" : "New membership plan"}
+      subtitle={
+        initial
+          ? "Update pricing, duration & features for this plan."
+          : "Create a structured pricing tier with duration & features."
+      }
       onClose={onClose}
       footer={
         <>
@@ -72,7 +78,13 @@ export function NewPlanModal({ onSave, onClose }: NewPlanModalProps) {
             Cancel
           </Button>
           <Button onPress={handleSubmit} isDisabled={saving}>
-            {saving ? "Publishing..." : "Publish plan"}
+            {saving
+              ? initial
+                ? "Saving..."
+                : "Publishing..."
+              : initial
+                ? "Save changes"
+                : "Publish plan"}
           </Button>
         </>
       }
@@ -85,7 +97,8 @@ export function NewPlanModal({ onSave, onClose }: NewPlanModalProps) {
             <div className="text-xs text-muted">{days} days billing</div>
           </div>
           <div className="preview-price">
-            ₹{Number(price || 0).toLocaleString("en-IN")}
+            {offerPrice ? <s>₹{Number(price || 0).toLocaleString("en-IN")}</s> : null}
+            <b>₹{Number(offerPrice || price || 0).toLocaleString("en-IN")}</b>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Users, Globe, Shield } from "lucide-react";
-import { AdminShell, Badge, Button, cn } from "../components/ui";
+import { AdminShell, Chip, Button, cn } from "../components/ui";
 
 const TARGETS = [
   { key: "staff", label: "Staff Only", icon: <Shield size={20} /> },
@@ -126,9 +126,9 @@ export function AdminBroadcastPage({ onSend }: AdminBroadcastPageProps) {
             style={{ padding: "16px 20px", borderBottom: "1px solid var(--color-border)" }}
           >
             <h3 style={{ fontSize: 17 }}>Broadcast history</h3>
-            <Badge color="default" variant="soft" size="sm">
+            <Chip color="default" variant="soft" size="sm">
               12 total sent
-            </Badge>
+            </Chip>
           </div>
           {HISTORY.map((h) => (
             <div className="hist-item" key={h.title}>
@@ -136,9 +136,9 @@ export function AdminBroadcastPage({ onSend }: AdminBroadcastPageProps) {
                 <div className="font-semibold">{h.title}</div>
                 <div className="muted small">{h.meta}</div>
               </div>
-              <Badge color="success" variant="soft" size="sm">
+              <Chip color="success" variant="soft" size="sm">
                 {h.status}
-              </Badge>
+              </Chip>
             </div>
           ))}
         </div>
