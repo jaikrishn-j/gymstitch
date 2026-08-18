@@ -1,6 +1,8 @@
 import { initializeApp } from "firebase/app";
-import { browserLocalPersistence, getAuth, setPersistence } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { browserLocalPersistence, connectAuthEmulator, getAuth, setPersistence } from "firebase/auth";
+import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
+import { connectStorageEmulator, getStorage } from "firebase/storage";
+import { connectFunctionsEmulator, getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDSMW7yN3neKjag9e7jNVUHMijaL68zJ6I",
@@ -12,9 +14,19 @@ const firebaseConfig = {
   measurementId: "G-3WYM03LX3Q"
 };
 
-// Initialize Firebase
+// Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
-export const auth = getAuth(app)
-setPersistence(auth, browserLocalPersistence)
-export const db = getFirestore(app)
+// Initialize and Export Services
+export const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
+export const functions = getFunctions(app);
+
+// Connect to Emulators in Development Mode
+
+connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+connectFirestoreEmulator(db, "127.0.0.1", 8080);
+connectStorageEmulator(storage, "127.0.0.1", 9199);
+connectFunctionsEmulator(functions, "127.0.0.1", 5001);
