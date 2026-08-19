@@ -7,26 +7,33 @@ export type PaymentMethod = "cash" | "upi" | "card";
 
 export type PaymentData = {
   planId: string;
+  planName: string;
   amount: number;
   days: number;
   method: PaymentMethod;
   notes: string;
+  memberId?: string;
+  memberName?: string;
+};
+
+export type PaymentMember = {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
 };
 
 export type RecordPaymentModalProps = {
-  memberName: string;
-  memberId: string;
-  memberMeta: string;
+  memberName?: string;
+  memberId?: string;
+  memberMeta?: string;
+  members?: PaymentMember[];
+  plans?: { id: string; name: string; price: number; days: number }[];
   onSave: (data: PaymentData) => Promise<void>;
   onClose?: () => void;
 };
 
-const PLAN_OPTIONS = [
-  { id: "9999|365", label: "Annual Unlimited (₹9,999 / 365 days)" },
-  { id: "2999|90", label: "Quarterly Pro (₹2,999 / 90 days)" },
-  { id: "1199|30", label: "Monthly Starter (₹1,199 / 30 days)" },
-  { id: "0|custom", label: "Custom Amount / Ad-hoc Payment" },
-];
+const CUSTOM_PLAN_ID = "custom";
 
 const METHOD_OPTIONS: { id: PaymentMethod; label: string }[] = [
   { id: "cash", label: "Cash" },
@@ -38,32 +45,82 @@ export function RecordPaymentModal({
   memberName,
   memberId,
   memberMeta,
+  members,
+  plans = [],
   onSave,
   onClose,
 }: RecordPaymentModalProps) {
+  const selectorMode = Array.isArray(members) && members.length > 0;
+  const defaultPlan = plans[0] ?? null;
   const [saving, setSaving] = useState(false);
-  const [planId, setPlanId] = useState("2999|90");
-  const [amount, setAmount] = useState(2999);
-  const [days, setDays] = useState(90);
+  const [planId, setPlanId] = useState(defaultPlan ? defaultPlan.id : CUSTOM_PLAN_ID);
+  const [amount, setAmount] = useState(defaultPlan ? defaultPlan.price : 0);
+  const [days, setDays] = useState(defaultPlan ? defaultPlan.days : 0);
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [notes, setNotes] = useState("");
+  const [selectedMemberId, setSelectedMemberId] = useState<string>("");
+  const [memberError, setMemberError] = useState(false);
+
+  const selectedMember = selectorMode
+    ? members?.find((m) => m.id === selectedMemberId)
+    : undefined;
+
+  const planOptions = [
+    ...plans.map((plan) => ({
+      id: plan.id,
+      label: plan.name,
+      description: `₹${plan.price.toLocaleString("en-IN")} · ${plan.days} days`,
+    })),
+    {
+      id: CUSTOM_PLAN_ID,
+      label: "Custom plan",
+      description: "Set amount & days manually",
+    },
+  ];
+
+  const memberOptions =
+    members?.map((m) => ({
+      id: m.id,
+      label: m.name,
+      description: `${m.email}${m.phone ? ` · ${m.phone}` : ""}`,
+    })) ?? [];
+
+  const isCustom = planId === CUSTOM_PLAN_ID;
 
   const handlePlanChange = (key: string) => {
     setPlanId(key);
-    if (key !== "0|custom") {
-      const [amt, d] = key.split("|");
-      setAmount(Number(amt));
-      setDays(Number(d));
+    if (key === CUSTOM_PLAN_ID) {
+      setAmount(0);
+      setDays(0);
+      return;
+    }
+    const plan = plans.find((p) => p.id === key);
+    if (plan) {
+      setAmount(plan.price);
+      setDays(plan.days);
     }
   };
 
-  const isCustom = planId === "0|custom";
-
   const handleSubmit = async () => {
-    if (!amount || amount <= 0) return;
+    if (selectorMode && !selectedMember) {
+      setMemberError(true);
+      return;
+    }
+    if (Number.isNaN(amount) || amount < 0) return;
+    if (Number.isNaN(days) || days < 0) return;
     setSaving(true);
     try {
-      await onSave({ planId, amount, days, method, notes });
+      const selectedPlan = plans.find((p) => p.id === planId);
+      await onSave({
+        planId,
+        planName: selectedPlan ? selectedPlan.name : "Custom",
+        amount,
+        days,
+        method,
+        notes,
+        memberId: selectorMode ? selectedMember!.id : memberId,
+        memberName: selectorMode ? selectedMember!.name : memberName,
+      });
       onClose?.();
     } catch {
       // Keep open
@@ -71,6 +128,12 @@ export function RecordPaymentModal({
       setSaving(false);
     }
   };
+
+  const displayName = selectorMode ? selectedMember?.name ?? "" : memberName ?? "";
+  const displayId = selectorMode ? `MBR-${selectedMember?.id ?? ""}` : memberId ?? "";
+  const displayMeta = selectorMode
+    ? `${selectedMember?.email ?? ""}${selectedMember?.phone ? ` · ${selectedMember.phone}` : ""}`
+    : memberMeta ?? "";
 
   return (
     <ModalShell
@@ -88,19 +151,51 @@ export function RecordPaymentModal({
         </>
       }
     >
-      <div className="user-info-banner">
-        <UserRound size={22} />
-        <div>
-          <div className="ui-name">{memberName}</div>
-          <div className="ui-id">
-            ID: {memberId} · {memberMeta}
+      {selectorMode ? (
+        <>
+          <SelectField
+            label="Select Member *"
+            placeholder="Choose a member"
+            options={memberOptions}
+            selectedKey={selectedMemberId}
+            isInvalid={memberError}
+            onSelectionChange={(key) => {
+              setSelectedMemberId(String(key));
+              setMemberError(false);
+            }}
+          />
+          {memberError ? (
+            <span className="block text-[12px] font-medium" style={{ color: "var(--color-danger)" }}>
+              Please select a member to continue.
+            </span>
+          ) : null}
+          {selectedMember ? (
+            <div className="user-info-banner" style={{ marginTop: 14 }}>
+              <UserRound size={22} />
+              <div>
+                <div className="ui-name">{displayName}</div>
+                <div className="ui-id">
+                  ID: {displayId} · {displayMeta}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className="user-info-banner">
+          <UserRound size={22} />
+          <div>
+            <div className="ui-name">{displayName}</div>
+            <div className="ui-id">
+              ID: {displayId} · {displayMeta}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <SelectField
         label="Select Membership Plan"
-        options={PLAN_OPTIONS}
+        options={planOptions}
         selectedKey={planId}
         onSelectionChange={(key) => handlePlanChange(String(key))}
       />
@@ -126,7 +221,7 @@ export function RecordPaymentModal({
         <span>Plan extension preview:</span>
         <b>
           {isCustom
-            ? "Custom ad-hoc payment recorded"
+            ? `Custom payment · ₹${amount.toLocaleString("en-IN")} · +${days} days`
             : `+${days} days added to membership`}
         </b>
       </div>

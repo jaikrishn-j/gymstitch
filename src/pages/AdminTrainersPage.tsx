@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Search, Trash2 } from "lucide-react";
-import { AdminShell, Button, EmptyState } from "../components/ui";
+import { AdminShell, Button, EmptyState, SyncBar } from "../components/ui";
 import { useModal } from "../components/providers/ModalProvider";
 import { useConfirm } from "../components/providers/ConfirmProvider";
 import { AddTrainerModal } from "../components/modals/AddTrainerModal";
@@ -19,6 +19,9 @@ export type StaffRow = {
 export type AdminTrainersPageProps = {
   trainers: StaffRow[];
   loading?: boolean;
+  lastSyncedAt?: number | null;
+  syncing?: boolean;
+  onSync?: () => void;
   onAddTrainer: (data: TrainerData) => Promise<void>;
   onUpdateStaff: (
     uid: string,
@@ -70,6 +73,9 @@ function buildChips(t: StaffRow) {
 export function AdminTrainersPage({
   trainers,
   loading,
+  lastSyncedAt,
+  syncing = false,
+  onSync,
   onAddTrainer,
   onUpdateStaff,
   onResetStaffLink,
@@ -184,6 +190,12 @@ export function AdminTrainersPage({
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+        <SyncBar
+          lastSyncedAt={lastSyncedAt}
+          isOnline
+          syncing={syncing}
+          onSync={onSync ?? (() => {})}
+        />
       </div>
 
       {loading ? (

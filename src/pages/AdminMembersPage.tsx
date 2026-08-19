@@ -1,17 +1,19 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import {
   AdminShell,
   Chip,
   Button,
   cn,
+  EmptyState,
+  SyncBar,
 } from "../components/ui";
 import { AdminModal } from "../components/modals/AdminModal";
 import { useModal } from "../components/providers/ModalProvider";
 import { RecordPaymentModal } from "../components/modals/RecordPaymentModal";
 import type { PaymentData } from "../components/modals/RecordPaymentModal";
 import { AddMemberModal } from "../components/modals/AddMemberModal";
-import type { AddMemberData } from "../components/modals/AddMemberModal";
+import type { AddMemberData, PlanOption } from "../components/modals/AddMemberModal";
 
 export type Member = {
   id: string;
@@ -25,23 +27,32 @@ export type Member = {
   expires: string;
 };
 
-const MEMBERS: Member[] = [
-  { id: "1", initials: "AS", tone: "accent", name: "Aarav Singh", email: "aarav@gmail.com", phone: "+91 98765 43210", plan: "Annual", status: "active", expires: "Jun 12, 2027" },
-  { id: "2", initials: "PK", tone: "info", name: "Priya Kumar", email: "priya@gmail.com", phone: "+91 98765 43211", plan: "Quarterly", status: "active", expires: "Sep 2, 2026" },
-  { id: "3", initials: "RM", tone: "warn", name: "Rahul Mehta", email: "rahul@gmail.com", phone: "+91 98765 43212", plan: "Monthly", status: "expiring", expires: "Aug 10, 2026" },
-  { id: "4", initials: "NJ", tone: "danger", name: "Neha Joshi", email: "neha@gmail.com", phone: "+91 98765 43213", plan: "Monthly", status: "expired", expires: "Aug 1, 2026" },
-  { id: "5", initials: "VS", tone: "accent", name: "Vikram Shah", email: "vikram@gmail.com", phone: "+91 98765 43214", plan: "Annual", status: "active", expires: "Mar 3, 2027" },
-  { id: "6", initials: "SG", tone: "info", name: "Simran Gill", email: "simran@gmail.com", phone: "+91 98765 43215", plan: "Quarterly", status: "expired", expires: "Jul 22, 2026" },
-];
+export type PaymentRow = {
+  id: string;
+  memberId: string;
+  memberName: string;
+  planId: string;
+  planName: string;
+  amount: number;
+  daysAdded: number;
+  method: string;
+  notes?: string;
+  paidAt: Date;
+  status?: "paid" | "pending";
+};
+
+export type AttendanceRow = {
+  id: string;
+  memberId: string;
+  memberName: string;
+  date: Date;
+  timeIn: string;
+  weight?: number | null;
+};
 
 type StatusFilter = "all" | "active" | "expiring" | "expired";
 
-const FILTERS: { key: StatusFilter; label: string }[] = [
-  { key: "all", label: "All members (128)" },
-  { key: "active", label: "Active (94)" },
-  { key: "expiring", label: "Expiring soon (18)" },
-  { key: "expired", label: "Expired (16)" },
-];
+const DAY_MS = 86_400_000;
 
 const STATUS_BADGE: Record<
   Member["status"],
@@ -53,24 +64,60 @@ const STATUS_BADGE: Record<
 };
 
 export type AdminMembersPageProps = {
+  members: Member[];
+  plans: PlanOption[];
+  payments: PaymentRow[];
+  attendance: AttendanceRow[];
+  loading?: boolean;
+  lastSyncedAt?: number | null;
+  pendingCount?: number;
+  isOnline?: boolean;
+  syncing?: boolean;
+  onSync?: () => void;
   onAddMember: (data: AddMemberData) => Promise<void>;
-  onRecordPayment: (data: PaymentData) => Promise<void>;
-  onMarkAttendance: (member: Member) => void;
-  onAssignPlan: (member: Member) => void;
+  onRecordPayment: (member: Member, data: PaymentData) => Promise<void>;
+  onMarkAttendance: (member: Member) => Promise<void>;
 };
 
 export function AdminMembersPage({
+  members,
+  plans,
+  payments,
+  attendance,
+  loading,
+  lastSyncedAt,
+  pendingCount = 0,
+  isOnline = true,
+  syncing = false,
+  onSync,
   onAddMember,
   onRecordPayment,
   onMarkAttendance,
-  onAssignPlan,
 }: AdminMembersPageProps) {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
   const [detail, setDetail] = useState<Member | null>(null);
   const { open } = useModal();
+  const closeModalRef = useRef<(() => void) | null>(null);
 
-  const visible = MEMBERS.filter((m) => {
+  const counts = useMemo(
+    () => ({
+      all: members.length,
+      active: members.filter((m) => m.status === "active").length,
+      expiring: members.filter((m) => m.status === "expiring").length,
+      expired: members.filter((m) => m.status === "expired").length,
+    }),
+    [members],
+  );
+
+  const filters: { key: StatusFilter; label: string }[] = [
+    { key: "all", label: `All members (${counts.all})` },
+    { key: "active", label: `Active (${counts.active})` },
+    { key: "expiring", label: `Expiring soon (${counts.expiring})` },
+    { key: "expired", label: `Expired (${counts.expired})` },
+  ];
+
+  const visible = members.filter((m) => {
     if (filter !== "all" && m.status !== filter) return false;
     if (query) {
       const haystack = `${m.name} ${m.email} ${m.plan}`.toLowerCase();
@@ -79,18 +126,19 @@ export function AdminMembersPage({
     return true;
   });
 
-  const openPaymentModal = (member?: Member) => {
-    const name = member?.name ?? "Aarav Singh";
-    const id = member?.id ?? "MBR-1001";
-    const email = member?.email ?? "aarav@gmail.com";
-    const phone = member?.phone ?? "+91 98765 43210";
-    const close = open(
+  const openPaymentModal = (member: Member) => {
+    const closeModal = () => closeModalRef.current?.();
+    closeModalRef.current = open(
       <RecordPaymentModal
-        memberName={name}
-        memberId={`MBR-${id}`}
-        memberMeta={`${email} · ${phone}`}
-        onSave={onRecordPayment}
-        onClose={() => close()}
+        plans={plans}
+        memberName={member.name}
+        memberId={`MBR-${member.id}`}
+        memberMeta={`${member.email} · ${member.phone}`}
+        onSave={async (data) => {
+          await onRecordPayment(member, data);
+          closeModal();
+        }}
+        onClose={closeModal}
       />,
       "md",
     );
@@ -99,6 +147,7 @@ export function AdminMembersPage({
   const openAddMember = () => {
     const close = open(
       <AddMemberModal
+        plans={plans}
         onSave={async (data) => {
           await onAddMember(data);
           close();
@@ -113,12 +162,15 @@ export function AdminMembersPage({
     <AdminShell
       title="Member Management"
       active="members"
-      status={{ mode: "offline", label: "Offline · 2 pending" }}
-      topbarActions={
-        <Button size="sm" onPress={() => openPaymentModal()}>
-          Sync now
-        </Button>
-      }
+      status={{
+        mode: isOnline ? "online" : "offline",
+        label:
+          pendingCount > 0
+            ? `${isOnline ? "Online" : "Offline"} · ${pendingCount} pending sync`
+            : isOnline
+              ? "Online"
+              : "Offline",
+      }}
     >
       <div className="page-head">
         <div>
@@ -141,14 +193,20 @@ export function AdminMembersPage({
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
+        <SyncBar
+          lastSyncedAt={lastSyncedAt}
+          pendingCount={pendingCount}
+          isOnline={isOnline}
+          syncing={syncing}
+          onSync={onSync ?? (() => {})}
+        />
         <Button variant="secondary" onPress={openAddMember}>
           + Add member
         </Button>
-        <Button onPress={() => openPaymentModal()}>+ Record payment</Button>
       </div>
 
       <div className="status-filters">
-        {FILTERS.map((f) => (
+        {filters.map((f) => (
           <button
             key={f.key}
             type="button"
@@ -160,6 +218,25 @@ export function AdminMembersPage({
         ))}
       </div>
 
+      {loading ? (
+        <div className="card pad muted">Loading members…</div>
+      ) : visible.length === 0 ? (
+        <div className="card pad">
+          <EmptyState
+            icon={<Search size={28} />}
+            title={
+              query || filter !== "all"
+                ? "No matching members"
+                : "No members yet"
+            }
+            description={
+              query || filter !== "all"
+                ? "Try a different search or filter."
+                : "Add your first member to get started."
+            }
+          />
+        </div>
+      ) : (
       <div className="card table-wrap reveal in">
         <table className="table">
           <thead>
@@ -197,24 +274,9 @@ export function AdminMembersPage({
                     <Button variant="ghost" size="sm" onPress={() => setDetail(m)}>
                       View
                     </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onPress={() => {
-            const close = open(
-              <RecordPaymentModal
-                memberName={m.name}
-                memberId={`MBR-${m.id}`}
-                memberMeta={`${m.email} · ${m.phone}`}
-                onSave={onRecordPayment}
-                onClose={() => close()}
-              />,
-              "md",
-            );
-          }}
-        >
-          Record payment
-        </Button>
+                    <Button variant="secondary" size="sm" onPress={() => openPaymentModal(m)}>
+                      Record payment
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -222,34 +284,80 @@ export function AdminMembersPage({
           </tbody>
         </table>
         <div className="muted small" style={{ margin: 12 }}>
-          Showing <b>{visible.length}</b> of 128 members
+          Showing <b>{visible.length}</b> of {members.length} members
         </div>
       </div>
+      )}
 
-      {detail ? <MemberDetailModal member={detail} onClose={() => setDetail(null)} onMarkAttendance={onMarkAttendance} onAssignPlan={onAssignPlan} /> : null}
+      {detail ? (
+        <MemberDetailModal
+          member={detail}
+          payments={payments.filter((p) => p.memberId === detail.id)}
+          attendance={attendance.filter((a) => a.memberId === detail.id)}
+          onMarkAttendance={onMarkAttendance}
+          onClose={() => setDetail(null)}
+        />
+      ) : null}
     </AdminShell>
   );
 }
 
 function MemberDetailModal({
   member,
-  onClose,
+  payments,
+  attendance,
   onMarkAttendance,
-  onAssignPlan,
+  onClose,
 }: {
   member: Member;
+  payments: PaymentRow[];
+  attendance: AttendanceRow[];
+  onMarkAttendance: (member: Member) => Promise<void>;
   onClose: () => void;
-  onMarkAttendance: (member: Member) => void;
-  onAssignPlan: (member: Member) => void;
 }) {
   const [tab, setTab] = useState<"att" | "pay">("att");
+  const [marking, setMarking] = useState(false);
+
+  const lastPayment = payments[0];
+
+  const weekly = useMemo(() => {
+    const now = new Date();
+    const day = (now.getDay() + 6) % 7;
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(now.getDate() - day);
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+    for (const record of attendance) {
+      const d = new Date(record.date);
+      d.setHours(0, 0, 0, 0);
+      const diff = (d.getTime() - weekStart.getTime()) / DAY_MS;
+      if (diff >= 0 && diff < 7) counts[diff] += 1;
+    }
+    const max = Math.max(...counts, 1);
+    return counts.map((count, i) => ({
+      label: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][i],
+      height: Math.round((count / max) * 100),
+      count,
+    }));
+  }, [attendance]);
+
+  const handleMark = async () => {
+    setMarking(true);
+    try {
+      await onMarkAttendance(member);
+    } catch {
+      // Handled by the route
+    } finally {
+      setMarking(false);
+    }
+  };
 
   return (
     <AdminModal
       open
       onClose={onClose}
       title={member.name}
-      subtitle={`${member.email} · ${member.phone} · Member since Jan 2024`}
+      subtitle={`${member.email} · ${member.phone}`}
       size="lg"
       footer={
         <>
@@ -282,112 +390,128 @@ function MemberDetailModal({
             <Button
               variant="secondary"
               size="sm"
-              onPress={() => onMarkAttendance(member)}
+              isDisabled={marking}
+              onPress={handleMark}
             >
-              + Mark today's check-in
-            </Button>
-            <Button variant="ghost" size="sm" onPress={() => onAssignPlan(member)}>
-              Assign new plan
+              {marking ? "Marking…" : "+ Mark today's check-in"}
             </Button>
           </div>
           <div className="card pad">
             <h3 style={{ fontSize: 16 }}>Weekly Attendance Frequency</h3>
             <div className="bar-chart" style={{ height: 120, marginTop: 16 }}>
-              {[
-                { h: 70, l: "Mon" },
-                { h: 90, l: "Tue" },
-                { h: 40, l: "Wed" },
-                { h: 80, l: "Thu" },
-                { h: 60, l: "Fri" },
-                { h: 0, l: "Sat" },
-                { h: 0, l: "Sun" },
-              ].map((b) => (
-                <div className="bar-wrap" key={b.l}>
-                  <div className="bar" style={{ height: `${b.h}%` }} />
-                  <span className="bar-label">{b.l}</span>
+              {weekly.map((b) => (
+                <div className="bar-wrap" key={b.label}>
+                  <div className="bar" style={{ height: `${b.height}%` }} />
+                  <span className="bar-label">
+                    {b.label}
+                    {b.count > 0 ? ` · ${b.count}` : ""}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>In</th>
-                  <th>Out</th>
-                  <th className="td-right">Weight</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Aug 7</td>
-                  <td>09:10</td>
-                  <td>10:05</td>
-                  <td className="td-right">78.2 kg</td>
-                </tr>
-                <tr>
-                  <td>Aug 6</td>
-                  <td>08:40</td>
-                  <td>09:30</td>
-                  <td className="td-right">78.4 kg</td>
-                </tr>
-                <tr>
-                  <td>Aug 5</td>
-                  <td>09:55</td>
-                  <td>10:45</td>
-                  <td className="td-right">78.6 kg</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {attendance.length === 0 ? (
+            <div className="card pad muted">
+              No check-ins recorded yet. Mark today's check-in to get started.
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>In</th>
+                    <th className="td-right">Weight</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendance.map((record) => (
+                    <tr key={record.id}>
+                      <td>
+                        {record.date.toLocaleDateString("en-IN", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </td>
+                      <td>{record.timeIn}</td>
+                      <td className="td-right">
+                        {record.weight != null ? `${record.weight} kg` : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       ) : (
         <>
           <div className="detail-stats">
             <div className="detail-stat">
-              <b>Annual Unlimited</b>
+              <b>{member.plan}</b>
               <span>Current plan</span>
             </div>
             <div className="detail-stat">
               <b className="mono" style={{ fontSize: 18 }}>
-                Jun 12, 2027
+                {member.expires}
               </b>
               <span>Expiration date</span>
             </div>
             <div className="detail-stat">
-              <b>₹5,999</b>
+              <b>₹{lastPayment ? lastPayment.amount.toLocaleString("en-IN") : "—"}</b>
               <span>Last payment</span>
             </div>
             <div className="detail-stat">
-              <b>3</b>
+              <b>{payments.length}</b>
               <span>Total payments</span>
             </div>
           </div>
           <div className="flex items-center justify-between">
             <h3 style={{ fontSize: 16 }}>Payment ledger history</h3>
             <Chip color="success" variant="soft" size="sm">
-              Verified
+              {member.status === "active" ? "Active" : member.status === "expiring" ? "Expiring" : "Expired"}
             </Chip>
           </div>
-          <div className="table-wrap">
-            <table className="table">
-              <tbody>
-                <tr>
-                  <td className="muted">Jun 12, 2026 · UPI</td>
-                  <td className="td-right amt">₹5,999</td>
-                </tr>
-                <tr>
-                  <td className="muted">Mar 12, 2026 · Card</td>
-                  <td className="td-right amt">₹5,999</td>
-                </tr>
-                <tr>
-                  <td className="muted">Jan 12, 2026 · UPI</td>
-                  <td className="td-right amt">₹5,999</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {payments.length === 0 ? (
+            <div className="card pad muted">
+              No payments recorded yet. Payments also assign/extend the
+              membership plan.
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Plan</th>
+                    <th>Days</th>
+                    <th>Method</th>
+                    <th className="td-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((payment) => (
+                    <tr key={payment.id}>
+                      <td className="muted">
+                        {payment.paidAt.toLocaleDateString("en-IN", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </td>
+                      <td>{payment.planName}</td>
+                      <td>+{payment.daysAdded} days</td>
+                      <td className="muted uppercase">{payment.method}</td>
+                      <td className="td-right amt">
+                        ₹{payment.amount.toLocaleString("en-IN")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </AdminModal>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { GridIcon, ListIcon, RefreshCcw } from "lucide-react";
 import { Tooltip } from "@heroui/react";
-import { AdminShell, Chip, Button, cn } from "../components/ui";
+import { AdminShell, Chip, Button, cn, SyncBar } from "../components/ui";
 import { useModal } from "../components/providers/ModalProvider";
 import { useConfirm } from "../components/providers/ConfirmProvider";
 import { NewPlanModal } from "../components/modals/NewPlanModal";
@@ -11,12 +11,24 @@ import type { PlanRow } from "../routes/admin/plans";
 export type AdminPlansPageProps = {
   plans: PlanRow[];
   loading: boolean;
+  lastSyncedAt?: number | null;
+  syncing?: boolean;
+  onSync?: () => void;
   onNewPlan: (data: PlanData) => Promise<void>;
   onUpdatePlan: (id: string, data: PlanData) => Promise<void>;
   onTogglePlan: (id: string) => void;
 };
 
-export function AdminPlansPage({ plans, loading, onNewPlan, onUpdatePlan, onTogglePlan }: AdminPlansPageProps) {
+export function AdminPlansPage({
+  plans,
+  loading,
+  lastSyncedAt,
+  syncing = false,
+  onSync,
+  onNewPlan,
+  onUpdatePlan,
+  onTogglePlan,
+}: AdminPlansPageProps) {
   const [view, setView] = useState<"grid" | "table">("grid");
   const { open } = useModal();
   const { confirm } = useConfirm();
@@ -89,6 +101,15 @@ export function AdminPlansPage({ plans, loading, onNewPlan, onUpdatePlan, onTogg
           </div>
           <Button onPress={() => openPlanModal()}>+ New plan</Button>
         </div>
+      </div>
+
+      <div className="toolbar" style={{ marginBottom: 20 }}>
+        <SyncBar
+          lastSyncedAt={lastSyncedAt}
+          isOnline
+          syncing={syncing}
+          onSync={onSync ?? (() => {})}
+        />
       </div>
 
       <div className="stats-row">

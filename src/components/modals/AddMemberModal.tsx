@@ -17,17 +17,18 @@ export type AddMemberData = {
   emergencyPhone: string;
 };
 
+export type PlanOption = {
+  id: string;
+  name: string;
+  price: number;
+  days: number;
+};
+
 export type AddMemberModalProps = {
   onSave: (data: AddMemberData) => Promise<void>;
   onClose?: () => void;
+  plans?: PlanOption[];
 };
-
-const PLAN_OPTIONS = [
-  { id: "", label: "No plan right now (Register only)" },
-  { id: "annual", label: "Annual Unlimited — ₹9,999 (365 days)" },
-  { id: "quarterly", label: "Quarterly Pro — ₹2,999 (90 days)" },
-  { id: "monthly", label: "Monthly Starter — ₹1,199 (30 days)" },
-];
 
 const BLOOD_GROUPS = [
   "O+",
@@ -40,7 +41,11 @@ const BLOOD_GROUPS = [
   "AB-",
 ];
 
-export function AddMemberModal({ onSave, onClose }: AddMemberModalProps) {
+export function AddMemberModal({
+  onSave,
+  onClose,
+  plans = [],
+}: AddMemberModalProps) {
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<AddMemberData>({
     firstName: "",
@@ -48,13 +53,22 @@ export function AddMemberModal({ onSave, onClose }: AddMemberModalProps) {
     email: "",
     phone: "",
     whatsapp: "",
-    planId: "quarterly",
+    planId: "",
     bloodGroup: "",
     dob: "",
     address: "",
     emergencyName: "",
     emergencyPhone: "",
   });
+
+  const planOptions = [
+    { id: "", label: "No plan right now (Register only)" },
+    ...plans.map((plan) => ({
+      id: plan.id,
+      label: plan.name,
+      description: `₹${plan.price.toLocaleString("en-IN")} · ${plan.days} days`,
+    })),
+  ];
 
   const set = <K extends keyof AddMemberData>(key: K, value: string) =>
     setData((prev) => ({ ...prev, [key]: value }));
@@ -146,7 +160,7 @@ export function AddMemberModal({ onSave, onClose }: AddMemberModalProps) {
       </div>
       <SelectField
         label="Membership plan"
-        options={PLAN_OPTIONS}
+        options={planOptions}
         selectedKey={data.planId}
         onSelectionChange={(key) =>
           set("planId", key == null ? "" : String(key))

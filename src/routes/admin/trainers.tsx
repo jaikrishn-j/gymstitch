@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "@heroui/react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../lib/firebase";
+import { CACHE_KEYS, TTL } from "../../lib/cache";
+import { useCachedData } from "../../lib/useCachedData";
 import { AdminTrainersPage } from "../../pages/AdminTrainersPage";
 import type { StaffRow } from "../../pages/AdminTrainersPage";
 import type { TrainerData } from "../../components/modals/AddTrainerModal";
@@ -24,38 +26,33 @@ export const Route = createFileRoute("/admin/trainers")({
   component: RouteComponent,
 });
 
-function RouteComponent() {
-  const [staff, setStaff] = useState<StaffRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [reset, setReset] = useState<
-    CreateStaffResult & { email: string } | null
-  >(null);
+const fetchStaffList = async (): Promise<StaffRow[]> => {
+  const q = query(collection(db, "users"), where("role", "==", "staff"));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      uid: d.id,
+      name: data.name ?? "",
+      email: data.email ?? "",
+      role: data.role === "admin" ? "admin" : "staff",
+      permission: data.permission,
+    };
+  });
+};
 
-  useEffect(() => {
-    const q = query(collection(db, "users"), where("role", "==", "staff"));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const rows: StaffRow[] = snap.docs.map((d) => {
-          const data = d.data();
-          return {
-            uid: d.id,
-            name: data.name ?? "",
-            email: data.email ?? "",
-            role: data.role === "admin" ? "admin" : "staff",
-            permission: data.permission,
-          };
-        });
-        setStaff(rows);
-        setLoading(false);
-      },
-      () => {
-        toast("Failed to load staff.", { variant: "danger" });
-        setLoading(false);
-      },
-    );
-    return unsub;
-  }, []);
+function RouteComponent() {
+  const [reset, setReset] = useState<CreateStaffResult & { email: string } | null>(null);
+
+  const staff = useCachedData<StaffRow[]>({
+    key: CACHE_KEYS.staff,
+    ttl: TTL.staff,
+    fetch: fetchStaffList,
+  });
+
+  const handleSync = () => {
+    void staff.refetch();
+  };
 
   const handleAddTrainer = async (data: TrainerData) => {
     try {
@@ -68,6 +65,7 @@ function RouteComponent() {
       });
       setReset({ ...res.data, email: data.email });
       toast.success("Staff account created.");
+      void staff.refetch();
     } catch {
       toast("Failed to create staff.", { variant: "danger" });
       throw new Error("create-staff-failed");
@@ -81,6 +79,7 @@ function RouteComponent() {
     try {
       await updateStaff({ uid, role: data.role, permission: data.permission });
       toast.success("Staff permissions updated.");
+      void staff.refetch();
     } catch {
       toast("Failed to update staff.", { variant: "danger" });
       throw new Error("update-staff-failed");
@@ -101,6 +100,7 @@ function RouteComponent() {
     try {
       await deleteStaff({ uid });
       toast.success("Staff account deleted.");
+      void staff.refetch();
     } catch {
       toast("Failed to delete staff.", { variant: "danger" });
       throw new Error("delete-staff-failed");
@@ -110,8 +110,11 @@ function RouteComponent() {
   return (
     <>
       <AdminTrainersPage
-        trainers={staff}
-        loading={loading}
+        trainers={staff.data ?? []}
+        loading={staff.loading}
+        lastSyncedAt={staff.lastSyncedAt}
+        syncing={staff.syncing}
+        onSync={handleSync}
         onAddTrainer={handleAddTrainer}
         onUpdateStaff={handleUpdateStaff}
         onResetStaffLink={handleResetStaffLink}

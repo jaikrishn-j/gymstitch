@@ -33,5 +33,7 @@ export { EmptyState } from "./EmptyState";
 export type { EmptyStateProps } from "./EmptyState";
 export { Segmented } from "./Segmented";
 export type { SegmentedOption, SegmentedProps } from "./Segmented";
+export { SyncBar } from "./SyncBar";
+export type { SyncBarProps } from "./SyncBar";
 export { AdminShell } from "../AdminShell";
 export type { AdminNavKey, AdminShellProps } from "../AdminShell";

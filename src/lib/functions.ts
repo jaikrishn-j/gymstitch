@@ -8,6 +8,12 @@ export type CreateMemberInput = {
   email: string;
   phone: string;
   planId?: string;
+  whatsapp?: string;
+  bloodGroup?: string;
+  dob?: string;
+  address?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
 };
 
 export type CreateMemberResult = {
