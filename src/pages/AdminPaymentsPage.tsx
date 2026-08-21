@@ -10,6 +10,7 @@ import type { PaymentRow } from "./AdminMembersPage";
 
 export type AdminPaymentsPageProps = {
   payments: PaymentRow[];
+  pendingApprovals: PaymentRow[];
   members: PaymentMember[];
   plans: PlanOption[];
   loading: boolean;
@@ -19,6 +20,8 @@ export type AdminPaymentsPageProps = {
   syncing?: boolean;
   onSync?: () => void;
   onRecordPayment: (member: PaymentMember, data: PaymentData) => Promise<void>;
+  onApprovePayment: (payment: PaymentRow, data: PaymentData) => Promise<void>;
+  onRejectPayment: (payment: PaymentRow) => Promise<void>;
   onPrintReceipt: (payment: PaymentRow) => void;
 };
 
@@ -48,6 +51,7 @@ function initials(name: string) {
 
 export function AdminPaymentsPage({
   payments,
+  pendingApprovals = [],
   members,
   plans,
   loading,
@@ -57,6 +61,8 @@ export function AdminPaymentsPage({
   syncing = false,
   onSync,
   onRecordPayment,
+  onApprovePayment,
+  onRejectPayment,
   onPrintReceipt,
 }: AdminPaymentsPageProps) {
   const [query, setQuery] = useState("");
@@ -94,7 +100,7 @@ export function AdminPaymentsPage({
     () =>
       payments.filter((p) => {
         if (!query) return true;
-        const haystack = `${p.memberName} ${p.memberId} ${p.method} ${p.planName}`.toLowerCase();
+        const haystack = `${p.memberName} ${p.email ?? ""} ${p.method} ${p.planName}`.toLowerCase();
         return haystack.includes(query.toLowerCase());
       }),
     [payments, query],
@@ -199,6 +205,31 @@ export function AdminPaymentsPage({
         </div>
       </div>
 
+      {pendingApprovals.length > 0 && (
+        <div className="card reveal" style={{ marginBottom: 20 }}>
+          <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--color-border)" }}>
+            <div className="eyebrow" style={{ marginBottom: 4 }}>
+              Pending approval requests
+            </div>
+            <p className="sub" style={{ margin: 0 }}>
+              {pendingApprovals.length} member-initiated payment request{pendingApprovals.length !== 1 ? "s" : ""} awaiting your approval.
+            </p>
+          </div>
+          <div className="flex flex-col gap-0">
+            {pendingApprovals.map((req) => (
+              <PendingApprovalRow
+                key={req.id}
+                payment={req}
+                members={members}
+                plans={plans}
+                onApprove={onApprovePayment}
+                onReject={onRejectPayment}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid-pay">
         <div className="card reveal">
           <div className="toolbar" style={{ padding: "16px 20px", margin: 0, borderBottom: "1px solid var(--color-border)" }}>
@@ -243,6 +274,7 @@ export function AdminPaymentsPage({
                 <thead>
                   <tr>
                     <th>Member</th>
+                    <th>Email</th>
                     <th>Plan</th>
                     <th>Method</th>
                     <th className="td-right">Amount</th>
@@ -256,6 +288,9 @@ export function AdminPaymentsPage({
                     <tr key={t.id}>
                       <td data-label="Member">
                         <span className="mono small">{initials(t.memberName)}</span> {t.memberName}
+                      </td>
+                      <td data-label="Email" className="muted">
+                        {t.email ?? "—"}
                       </td>
                       <td data-label="Plan">
                         {t.planName}
@@ -527,6 +562,94 @@ function LegendRow({
       <span className="sw" style={{ background: color }} />
       {label}
       <b className="v">{value}</b>
+    </div>
+  );
+}
+
+function PendingApprovalRow({
+  payment,
+  members,
+  plans,
+  onApprove,
+  onReject,
+}: {
+  payment: PaymentRow;
+  members: PaymentMember[];
+  plans: PlanOption[];
+  onApprove: (payment: PaymentRow, data: PaymentData) => Promise<void>;
+  onReject: (payment: PaymentRow) => Promise<void>;
+}) {
+  const { open } = useModal();
+  const [rejecting, setRejecting] = useState(false);
+
+  const handleApprove = () => {
+    const member = members.find((m) => m.id === payment.memberId);
+    if (!member) return;
+
+    const close = open(
+      <RecordPaymentModal
+        memberName={payment.memberName}
+        memberId={payment.memberId}
+        plans={plans}
+        onSave={async (data) => {
+          await onApprove(payment, data);
+          close();
+        }}
+        onClose={() => close()}
+      />,
+      "md",
+    );
+  };
+
+  const handleReject = async () => {
+    setRejecting(true);
+    try {
+      await onReject(payment);
+    } finally {
+      setRejecting(false);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "14px 20px",
+        borderBottom: "1px solid var(--color-border)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span
+          className="grid h-[38px] w-[38px] place-items-center rounded-full font-semibold"
+          style={{ background: "var(--color-accent-soft)", color: "var(--color-accent)" }}
+        >
+          {initials(payment.memberName)}
+        </span>
+        <div>
+          <div style={{ fontWeight: 550 }}>{payment.memberName}</div>
+          <div className="muted small">
+            {payment.planName} · ₹{payment.amount.toLocaleString("en-IN")} · +{payment.daysAdded} days
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Chip color="warning" variant="soft" size="sm">
+          Awaiting approval
+        </Chip>
+        <Button size="sm" onPress={handleApprove}>
+          Approve
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          isDisabled={rejecting}
+          onPress={handleReject}
+        >
+          {rejecting ? "Rejecting…" : "Reject"}
+        </Button>
+      </div>
     </div>
   );
 }

@@ -60,6 +60,33 @@ export type GetStaffResetLinkResult = {
   resetLink: string;
 };
 
+export type CreateRazorpayOrderInput = {
+  planId: string;
+  planName: string;
+  amount: number;
+  days: number;
+};
+
+export type CreateRazorpayOrderResult = {
+  orderId: string;
+  amount: number;
+  currency: string;
+  keyId: string;
+  clientId: string;
+};
+
+export type SavePaymentGatewayConfigInput = {
+  keyId: string;
+  secretKey: string;
+  webhookSecret: string;
+  envMode: "test" | "live";
+  enabled: boolean;
+};
+
+export type SavePaymentGatewayConfigResult = {
+  saved: boolean;
+};
+
 export const createMember = httpsCallable<CreateMemberInput, CreateMemberResult>(
   functions,
   "createMember",
@@ -84,3 +111,13 @@ export const getStaffResetLink = httpsCallable<
   GetStaffResetLinkInput,
   GetStaffResetLinkResult
 >(functions, "getStaffResetLink");
+
+export const createRazorpayOrder = httpsCallable<
+  CreateRazorpayOrderInput,
+  CreateRazorpayOrderResult
+>(functions, "createRazorpayOrder");
+
+export const savePaymentGatewayConfig = httpsCallable<
+  SavePaymentGatewayConfigInput,
+  SavePaymentGatewayConfigResult
+>(functions, "savePaymentGatewayConfig");

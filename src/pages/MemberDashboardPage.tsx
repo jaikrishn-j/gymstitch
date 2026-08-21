@@ -33,8 +33,44 @@ export type GymMessage = {
   unread: boolean;
 };
 
+export type MemberProfile = {
+  bloodGroup?: string;
+  dob?: string;
+  address?: string;
+  emergencyName?: string;
+  emergencyPhone?: string;
+  planId?: string;
+  planName?: string;
+  planStart?: unknown;
+  planExpiresAt?: unknown;
+};
+
+export type MemberPaymentRow = {
+  id: string;
+  planName: string;
+  amount: number;
+  method: string;
+  date: string;
+  status: string;
+};
+
+export type MemberAttendanceRow = {
+  id: string;
+  date: string;
+  timeIn: string;
+  timeOut: string | null;
+  weight: number | null;
+};
+
 export type MemberDashboardPageProps = {
   name: string;
+  profile?: MemberProfile;
+  currentPlan?: { name: string; expires: string; daysLeft: number; progress: number } | null;
+  payments?: MemberPaymentRow[];
+  attendance?: MemberAttendanceRow[];
+  plans?: MemberPlan[];
+  gatewayEnabled?: boolean;
+  isProfileComplete?: boolean;
   onLogout: () => void;
   onLogWeight: (weightIn: number, weightOut: number) => void;
   onBuyPlan: (plan: MemberPlan) => void;
@@ -48,6 +84,11 @@ type ModalName = "plan" | "receipts" | "messages" | "logWeight" | "bell" | null;
 
 export function MemberDashboardPage({
   name,
+  currentPlan: currentPlanData,
+  payments = [],
+  attendance = [],
+  plans: plansProp,
+  gatewayEnabled = false,
   onLogout,
   onLogWeight,
   onBuyPlan,
@@ -57,38 +98,29 @@ export function MemberDashboardPage({
   onMarkAllRead,
 }: MemberDashboardPageProps) {
   const [openModal, setOpenModal] = useState<ModalName>(null);
-  const [selectedPlan, setSelectedPlan] = useState("annual");
-  const [weightIn, setWeightIn] = useState("78.2");
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [weightIn, setWeightIn] = useState("");
   const [weightOut, setWeightOut] = useState("");
 
-  const plans: MemberPlan[] = [
+  const defaultPlans: MemberPlan[] = [
     { id: "monthly", name: "Monthly Starter", meta: "1 month · full access", price: 899, days: 30 },
     { id: "quarterly", name: "Quarterly Pro", meta: "3 months · paid ₹833/mo", price: 2499, days: 90, badge: "Save 7%" },
     { id: "annual", name: "Annual Unlimited", meta: "12 months · paid ₹500/mo", price: 5999, days: 365 },
   ];
 
-  const currentPlan = plans.find((p) => p.id === selectedPlan) ?? plans[2];
+  const plans = (plansProp && plansProp.length > 0) ? plansProp : defaultPlans;
 
-  const receipts: Receipt[] = [
-    {
-      id: "INV-2026-0842",
-      label: "Annual Unlimited Membership",
-      invoice: "#INV-2026-0842 · Jun 12, 2026 · UPI",
-      date: "Jun 12, 2026",
-      method: "UPI",
-      amount: 5999,
-      tone: "accent",
-    },
-    {
-      id: "INV-2026-0310",
-      label: "Quarterly Pro Membership",
-      invoice: "#INV-2026-0310 · Mar 12, 2026 · Card",
-      date: "Mar 12, 2026",
-      method: "Card",
-      amount: 5999,
-      tone: "info",
-    },
-  ];
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? plans[0];
+
+  const receipts: Receipt[] = payments.map((p) => ({
+    id: p.id,
+    label: p.planName,
+    invoice: `#${p.id} · ${p.date} · ${p.method}`,
+    date: p.date,
+    method: p.method,
+    amount: p.amount,
+    tone: p.status === "paid" ? "accent" : "info",
+  }));
 
   const messages: GymMessage[] = [
     {
@@ -108,6 +140,62 @@ export function MemberDashboardPage({
       unread: false,
     },
   ];
+
+  // Compute attendance stats for this week
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  weekStart.setHours(0, 0, 0, 0);
+
+  const weekAttendance = attendance.filter((a) => {
+    const d = new Date(a.date);
+    return d >= weekStart && d <= now;
+  });
+
+  const attendedDays = weekAttendance.length;
+  const totalDays = 7;
+  const attendancePct = Math.round((attendedDays / totalDays) * 100);
+
+  // Build bar chart data for the week
+  const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
+  const barData = dayLabels.map((label, idx) => {
+    const dayDate = new Date(weekStart);
+    dayDate.setDate(weekStart.getDate() + idx);
+    const hasAttendance = attendance.some((a) => {
+      const d = new Date(a.date);
+      return d.toDateString() === dayDate.toDateString();
+    });
+    return { h: hasAttendance ? 80 : 0, l: label };
+  });
+
+  // Compute weight progress
+  const weightEntries = attendance
+    .filter((a) => a.weight != null)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  const latestWeight = weightEntries[0]?.weight ?? null;
+  const previousWeight = weightEntries[1]?.weight ?? null;
+  const weightDelta = latestWeight != null && previousWeight != null
+    ? latestWeight - previousWeight
+    : null;
+
+  // Compute streak (consecutive days with attendance)
+  let streak = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let i = 0; i < 30; i++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(today.getDate() - i);
+    const hasDay = attendance.some((a) => {
+      const d = new Date(a.date);
+      return d.toDateString() === checkDate.toDateString();
+    });
+    if (hasDay) {
+      streak++;
+    } else {
+      break;
+    }
+  }
 
   return (
     <div className="min-h-screen">
@@ -168,38 +256,51 @@ export function MemberDashboardPage({
           <div className="glow" />
           <div className="plan-head">
             <div>
-              <h2>Annual Membership</h2>
+              <h2>{currentPlanData?.name ?? "No Active Plan"}</h2>
               <div className="plan-meta">
-                <span>
-                  Expires <b className="mono">Jun 12, 2027</b>
-                </span>
-                <span>
-                  <b className="mono">310</b> days left
-                </span>
+                {currentPlanData ? (
+                  <>
+                    <span>
+                      Expires <b className="mono">{currentPlanData.expires}</b>
+                    </span>
+                    <span>
+                      <b className="mono">{currentPlanData.daysLeft}</b> days left
+                    </span>
+                  </>
+                ) : (
+                  <span>No active membership. Subscribe to get started.</span>
+                )}
               </div>
             </div>
-            <div style={{ textAlign: "right" }}>
-              <div className="eyebrow" style={{ marginBottom: 2 }}>
-                Days remaining
+            {currentPlanData && (
+              <div style={{ textAlign: "right" }}>
+                <div className="eyebrow" style={{ marginBottom: 2 }}>
+                  Days remaining
+                </div>
+                <div
+                  className="stat-num"
+                  style={{ fontSize: 30, color: "var(--color-success)" }}
+                >
+                  {currentPlanData.daysLeft}
+                </div>
               </div>
-              <div
-                className="stat-num"
-                style={{ fontSize: 30, color: "var(--color-success)" }}
-              >
-                310
+            )}
+          </div>
+          {currentPlanData && (
+            <>
+              <div className="progress">
+                <div className="fill" style={{ width: `${currentPlanData.progress}%` }} />
               </div>
-            </div>
-          </div>
-          <div className="progress">
-            <div className="fill" style={{ width: "63%" }} />
-          </div>
-          <div className="flex justify-between text-xs text-muted">
-            <span>Jan 12, 2026</span>
-            <span>63% used</span>
-            <span>Jun 12, 2027</span>
-          </div>
+              <div className="flex justify-between text-xs text-muted">
+                <span>{currentPlanData.expires}</span>
+                <span>{currentPlanData.progress}% used</span>
+              </div>
+            </>
+          )}
           <div className="mt-5 flex gap-2.5">
-            <Button onPress={() => setOpenModal("plan")}>Renew / extend</Button>
+            <Button onPress={() => setOpenModal("plan")}>
+              {currentPlanData ? "Renew / extend" : "Choose a plan"}
+            </Button>
             <Button variant="ghost" onPress={() => setOpenModal("logWeight")}>
               Today's weight
             </Button>
@@ -209,18 +310,10 @@ export function MemberDashboardPage({
         <div className="metric-cards">
           <div className="card sev-card">
             <h3>Attendance — this week</h3>
-            <p className="sub">4 of 7 days · 57%</p>
+            <p className="sub">{attendedDays} of {totalDays} days · {attendancePct}%</p>
             <div className="bar-chart" style={{ height: 120 }}>
-              {[
-                { h: 70, l: "M" },
-                { h: 90, l: "T" },
-                { h: 40, l: "W" },
-                { h: 80, l: "T" },
-                { h: 60, l: "F" },
-                { h: 0, l: "S" },
-                { h: 0, l: "S" },
-              ].map((b) => (
-                <div className="bar-wrap" key={b.l}>
+              {barData.map((b, i) => (
+                <div className="bar-wrap" key={i}>
                   <div className="bar" style={{ height: `${b.h}%` }} />
                   <span className="bar-label">{b.l}</span>
                 </div>
@@ -230,12 +323,32 @@ export function MemberDashboardPage({
           <div className="card sev-card">
             <div className="mb-3.5 flex items-center justify-between">
               <h3>Weight progress</h3>
-              <span className="ring-badge badge-green">−1.8 kg this month</span>
+              {weightDelta != null ? (
+                <span className={cn("ring-badge", weightDelta <= 0 ? "badge-green" : "badge-amber")}>
+                  {weightDelta <= 0 ? "" : "+"}{weightDelta.toFixed(1)} kg
+                </span>
+              ) : latestWeight != null ? (
+                <span className="ring-badge badge-info">{latestWeight} kg</span>
+              ) : (
+                <span className="ring-badge badge-neutral">No data</span>
+              )}
             </div>
             <div className="rings">
-              <Ring pct={72} color="var(--color-success)" cap="Goal progress" />
-              <Ring pct={85} color="var(--color-accent)" cap="Consistency" />
-              <Ring pct={58} color="var(--color-info)" cap="This week" />
+              <Ring
+                pct={attendancePct}
+                color="var(--color-success)"
+                cap="This week"
+              />
+              <Ring
+                pct={streak > 0 ? Math.min(100, Math.round((streak / 7) * 100)) : 0}
+                color="var(--color-accent)"
+                cap={`${streak}-day streak`}
+              />
+              <Ring
+                pct={latestWeight != null ? 85 : 0}
+                color="var(--color-info)"
+                cap={latestWeight != null ? `${latestWeight} kg` : "No weight"}
+              />
             </div>
           </div>
         </div>
@@ -246,22 +359,26 @@ export function MemberDashboardPage({
               Your payments
             </div>
             <div className="flex flex-col gap-2.5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="muted">Jun 12 · UPI</span>
-                <b className="amount mono">₹5,999</b>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="muted">Mar 12 · Card</span>
-                <b className="amount mono">₹5,999</b>
-              </div>
+              {payments.length > 0 ? (
+                payments.slice(0, 3).map((p) => (
+                  <div className="flex items-center justify-between text-sm" key={p.id}>
+                    <span className="muted">{p.date} · {p.method}</span>
+                    <b className="amount mono">₹{p.amount.toLocaleString("en-IN")}</b>
+                  </div>
+                ))
+              ) : (
+                <div className="text-sm muted">No payments yet</div>
+              )}
             </div>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm mt-3.5 p-0 text-accent"
-              onClick={() => setOpenModal("receipts")}
-            >
-              View receipts →
-            </button>
+            {payments.length > 0 && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm mt-3.5 p-0 text-accent"
+                onClick={() => setOpenModal("receipts")}
+              >
+                View receipts →
+              </button>
+            )}
           </div>
           <div className="card pad">
             <div className="eyebrow" style={{ marginBottom: 12 }}>
@@ -298,9 +415,9 @@ export function MemberDashboardPage({
               type="button"
               className={cn(
                 "plan-sheet-card",
-                selectedPlan === plan.id && "selected",
+                selectedPlanId === plan.id && "selected",
               )}
-              onClick={() => setSelectedPlan(plan.id)}
+              onClick={() => setSelectedPlanId(plan.id)}
             >
               <div className="text-left">
                 <div className="font-semibold">
@@ -326,35 +443,41 @@ export function MemberDashboardPage({
           <div>
             <span className="muted">Plan</span>
             <span className="amt mono">
-              ₹{currentPlan.price.toLocaleString("en-IN")}
+              ₹{selectedPlan.price.toLocaleString("en-IN")}
             </span>
           </div>
           <div>
             <span className="muted">Days added to membership</span>
-            <span className="amt mono">+{currentPlan.days} days</span>
+            <span className="amt mono">+{selectedPlan.days} days</span>
           </div>
           <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: 10 }}>
             <b>Total due now</b>
             <b className="stat-num mono" style={{ fontSize: 18 }}>
-              ₹{currentPlan.price.toLocaleString("en-IN")}
+              ₹{selectedPlan.price.toLocaleString("en-IN")}
             </b>
           </div>
         </div>
         <div className="flex gap-2.5">
-          <Button fullWidth size="lg" onPress={() => onBuyPlan(currentPlan)}>
-            Pay now
-          </Button>
+          {gatewayEnabled ? (
+            <Button fullWidth size="lg" onPress={() => onBuyPlan(selectedPlan)}>
+              Pay now
+            </Button>
+          ) : null}
           <Button
             fullWidth
             size="lg"
-            variant="secondary"
-            onPress={() => onRequestApproval(currentPlan)}
+            variant={gatewayEnabled ? "secondary" : "primary"}
+            onPress={() => onRequestApproval(selectedPlan)}
           >
             Request approval
           </Button>
         </div>
         <div className="muted small mt-3 text-center">
-          Secured payments by <b>Razorpay</b>
+          {gatewayEnabled ? (
+            <>Secured payments by <b>Razorpay</b></>
+          ) : (
+            <>Admin will review and approve your request</>
+          )}
         </div>
       </MemberModal>
 
@@ -460,7 +583,7 @@ export function MemberDashboardPage({
         open={openModal === "logWeight"}
         onClose={() => setOpenModal(null)}
         title="Log today's weight"
-        subtitle="Fri, Aug 7 · you're on a 6-day streak"
+        subtitle={streak > 0 ? `You're on a ${streak}-day streak` : "Start your streak today"}
         footer={
           <>
             <Button variant="secondary" onPress={() => setOpenModal(null)}>
@@ -470,6 +593,8 @@ export function MemberDashboardPage({
               onPress={() => {
                 onLogWeight(Number(weightIn), Number(weightOut));
                 setOpenModal(null);
+                setWeightIn("");
+                setWeightOut("");
               }}
             >
               Save weight
@@ -493,12 +618,17 @@ export function MemberDashboardPage({
           value={weightOut}
           onValueChange={setWeightOut}
         />
-        <div className="banner green">
-          <Check size={16} />
-          <span>
-            Logged successfully. You're <b>0.4 kg</b> lighter than yesterday.
-          </span>
-        </div>
+        {latestWeight != null && (
+          <div className="banner green">
+            <Check size={16} />
+            <span>
+              Last logged: <b>{latestWeight} kg</b>
+              {weightDelta != null && (
+                <> · {weightDelta <= 0 ? `${Math.abs(weightDelta).toFixed(1)} kg less` : `${weightDelta.toFixed(1)} kg more`} than previous</>
+              )}
+            </span>
+          </div>
+        )}
       </MemberModal>
 
       {/* Bell modal */}
@@ -506,39 +636,52 @@ export function MemberDashboardPage({
         open={openModal === "bell"}
         onClose={() => setOpenModal(null)}
         title="Notifications"
-        subtitle="2 unread notifications"
+        subtitle={`${messages.filter((m) => m.unread).length} unread notifications`}
       >
         <div className="flex flex-col gap-2.5">
-          <div className="card pad-sm" style={{ borderColor: "var(--color-accent)" }}>
-            <div className="text-sm font-semibold">Holiday hours</div>
-            <div className="muted small">Open 6a–10p this weekend.</div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2.5"
-              onPress={() => setOpenModal(null)}
+          {messages.filter((m) => m.unread).map((message) => (
+            <div
+              key={message.id}
+              className="card pad-sm"
+              style={{ borderColor: "var(--color-accent)" }}
             >
-              Mark as read
-            </Button>
-          </div>
-          <div className="card pad-sm" style={{ borderColor: "var(--color-accent)" }}>
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold">Plan expiring soon</div>
-              <span className="ring-badge badge-amber">3 days</span>
+              <div className="text-sm font-semibold">{message.title}</div>
+              <div className="muted small">{message.body.slice(0, 80)}...</div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2.5"
+                onPress={() => onMarkMessageRead(message.id)}
+              >
+                Mark as read
+              </Button>
             </div>
-            <div className="muted small" style={{ margin: "4px 0 10px" }}>
-              Your Annual plan ends in 3 days.
+          ))}
+          {currentPlanData && currentPlanData.daysLeft <= 7 && (
+            <div className="card pad-sm" style={{ borderColor: "var(--color-accent)" }}>
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-semibold">Plan expiring soon</div>
+                <span className="ring-badge badge-amber">{currentPlanData.daysLeft} days</span>
+              </div>
+              <div className="muted small" style={{ margin: "4px 0 10px" }}>
+                Your {currentPlanData.name} plan ends in {currentPlanData.daysLeft} days.
+              </div>
+              <Button
+                size="sm"
+                onPress={() => {
+                  setOpenModal(null);
+                  setOpenModal("plan");
+                }}
+              >
+                Renew now
+              </Button>
             </div>
-            <Button
-              size="sm"
-              onPress={() => {
-                setOpenModal(null);
-                setOpenModal("plan");
-              }}
-            >
-              Renew now
-            </Button>
-          </div>
+          )}
+          {messages.filter((m) => m.unread).length === 0 && (!currentPlanData || currentPlanData.daysLeft > 7) && (
+            <div className="text-sm muted text-center" style={{ padding: 20 }}>
+              No new notifications
+            </div>
+          )}
         </div>
       </MemberModal>
     </div>
@@ -551,6 +694,7 @@ function MemberModal({
   title,
   subtitle,
   footer,
+  size = "md",
   children,
 }: {
   open: boolean;
@@ -558,6 +702,7 @@ function MemberModal({
   title: string;
   subtitle?: string;
   footer?: ReactNode;
+  size?: "sm" | "md" | "lg";
   children: ReactNode;
 }) {
   const state = useOverlayState({
@@ -568,19 +713,23 @@ function MemberModal({
   });
   return (
     <Modal state={state}>
-      <Modal.Dialog className="modal-dialog modal-size-md">
-        <div className="m-head">
-          <div>
-            <h3>{title}</h3>
-            {subtitle ? <div className="sub">{subtitle}</div> : null}
-          </div>
-          <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-        <div className="m-body">{children}</div>
-        {footer ? <div className="m-foot">{footer}</div> : null}
-      </Modal.Dialog>
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog className={cn("modal-dialog", `modal-size-${size}`)}>
+            <div className="m-head">
+              <div>
+                <h3>{title}</h3>
+                {subtitle ? <div className="sub">{subtitle}</div> : null}
+              </div>
+              <button type="button" className="icon-btn" aria-label="Close" onClick={onClose}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="m-body">{children}</div>
+            {footer ? <div className="m-foot">{footer}</div> : null}
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
     </Modal>
   );
 }

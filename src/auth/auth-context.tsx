@@ -30,7 +30,7 @@ async function fetchUserProfile(
       return {
         uid,
         email: firebaseUser?.email ?? '',
-        name: firebaseUser?.displayName ?? '',
+        name: data.name || firebaseUser?.displayName || '',
         role: data.role,
         permission: data.permission ?? undefined,
       }

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bell, Building2, CreditCard, Eye, EyeOff, IndianRupee } from "lucide-react";
 import { AdminShell, Button, cn } from "../components/ui";
 
@@ -13,64 +13,81 @@ export type GymSettings = {
   envMode: "test" | "live";
   keyId: string;
   secretKey: string;
+  webhookSecret: string;
   expiryReminder: boolean;
   paymentReceipt: boolean;
 };
 
 export type AdminSettingsPageProps = {
+  initial?: Partial<GymSettings>;
   onSave: (settings: GymSettings) => void;
   onDiscard: () => void;
   onTestConnection: () => void;
 };
 
 export function AdminSettingsPage({
+  initial,
   onSave,
   onDiscard,
   onTestConnection,
 }: AdminSettingsPageProps) {
-  const [gymName, setGymName] = useState("GymStitch Elite Fitness");
-  const [supportEmail, setSupportEmail] = useState("support@gymstitch.com");
-  const [contactPhone, setContactPhone] = useState("+91 98765 43210");
-  const [currency, setCurrency] = useState("INR (₹) — Indian Rupee");
-  const [registrationFee, setRegistrationFee] = useState("500");
-  const [gracePeriod, setGracePeriod] = useState("3 Days grace");
-  const [gatewayEnabled, setGatewayEnabled] = useState(true);
-  const [envMode, setEnvMode] = useState<"test" | "live">("live");
-  const [keyId, setKeyId] = useState("rzp_live_9823471923847");
-  const [secretKey, setSecretKey] = useState("sk_live_9823471923847abcdef");
+  const [gymName, setGymName] = useState(initial?.gymName ?? "GymStitch Elite Fitness");
+  const [supportEmail, setSupportEmail] = useState(initial?.supportEmail ?? "support@gymstitch.com");
+  const [contactPhone, setContactPhone] = useState(initial?.contactPhone ?? "+91 98765 43210");
+  const [currency, setCurrency] = useState(initial?.currency ?? "INR (₹) — Indian Rupee");
+  const [registrationFee, setRegistrationFee] = useState(initial?.registrationFee ?? "500");
+  const [gracePeriod, setGracePeriod] = useState(initial?.gracePeriod ?? "3 Days grace");
+  const [gatewayEnabled, setGatewayEnabled] = useState(initial?.gatewayEnabled ?? false);
+  const [envMode, setEnvMode] = useState<"test" | "live">(initial?.envMode ?? "test");
+  const [keyId, setKeyId] = useState(initial?.keyId ?? "");
+  const [secretKey, setSecretKey] = useState(initial?.secretKey ?? "");
+  const [webhookSecret, setWebhookSecret] = useState(initial?.webhookSecret ?? "");
   const [showSecret, setShowSecret] = useState(false);
-  const [expiryReminder, setExpiryReminder] = useState(true);
-  const [paymentReceipt, setPaymentReceipt] = useState(true);
+  const [expiryReminder, setExpiryReminder] = useState(initial?.expiryReminder ?? true);
+  const [paymentReceipt, setPaymentReceipt] = useState(initial?.paymentReceipt ?? true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
 
+  useEffect(() => {
+    if (initial) {
+      if (initial.gymName !== undefined) setGymName(initial.gymName);
+      if (initial.supportEmail !== undefined) setSupportEmail(initial.supportEmail);
+      if (initial.contactPhone !== undefined) setContactPhone(initial.contactPhone);
+      if (initial.currency !== undefined) setCurrency(initial.currency);
+      if (initial.registrationFee !== undefined) setRegistrationFee(initial.registrationFee);
+      if (initial.gracePeriod !== undefined) setGracePeriod(initial.gracePeriod);
+      if (initial.gatewayEnabled !== undefined) setGatewayEnabled(initial.gatewayEnabled);
+      if (initial.envMode !== undefined) setEnvMode(initial.envMode);
+      if (initial.keyId !== undefined) setKeyId(initial.keyId);
+      if (initial.secretKey !== undefined) setSecretKey(initial.secretKey);
+      if (initial.webhookSecret !== undefined) setWebhookSecret(initial.webhookSecret);
+      if (initial.expiryReminder !== undefined) setExpiryReminder(initial.expiryReminder);
+      if (initial.paymentReceipt !== undefined) setPaymentReceipt(initial.paymentReceipt);
+    }
+  }, [initial]);
+
   const switchEnv = (mode: "test" | "live") => {
     setEnvMode(mode);
-    setKeyId(mode === "test" ? "rzp_test_48293847192834" : "rzp_live_9823471923847");
-    setSecretKey(
-      mode === "test" ? "sk_test_48293847192834abcdef" : "sk_live_9823471923847abcdef",
-    );
   };
 
   const handleSave = () => {
     setSaving(true);
-    window.setTimeout(() => {
-      setSaving(false);
-      onSave({
-        gymName,
-        supportEmail,
-        contactPhone,
-        currency,
-        registrationFee,
-        gracePeriod,
-        gatewayEnabled,
-        envMode,
-        keyId,
-        secretKey,
-        expiryReminder,
-        paymentReceipt,
-      });
-    }, 800);
+    onSave({
+      gymName,
+      supportEmail,
+      contactPhone,
+      currency,
+      registrationFee,
+      gracePeriod,
+      gatewayEnabled,
+      envMode,
+      keyId,
+      secretKey,
+      webhookSecret,
+      expiryReminder,
+      paymentReceipt,
+    });
+    window.setTimeout(() => setSaving(false), 800);
   };
 
   return (
@@ -254,6 +271,18 @@ export function AdminSettingsPage({
               </div>
             </div>
 
+            <div className="field">
+              <label>Webhook Secret</label>
+              <input
+                className="input mono"
+                type={showSecret ? "text" : "password"}
+                placeholder="whsec_..."
+                value={webhookSecret}
+                onChange={(e) => setWebhookSecret(e.target.value)}
+              />
+              <span className="muted small">Used to verify Razorpay webhook signatures. Set this in your Razorpay dashboard.</span>
+            </div>
+
             <div
               style={{
                 display: "flex",
@@ -341,6 +370,11 @@ export function AdminSettingsPage({
                 setCurrency("INR (₹) — Indian Rupee");
                 setRegistrationFee("500");
                 setGracePeriod("3 Days grace");
+                setGatewayEnabled(false);
+                setEnvMode("test");
+                setKeyId("");
+                setSecretKey("");
+                setWebhookSecret("");
                 onDiscard();
               }}
             >

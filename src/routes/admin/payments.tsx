@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "@heroui/react";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { CACHE_KEYS, TTL, capPayments, toDate, toISO } from "../../lib/cache";
 import { useCachedData } from "../../lib/useCachedData";
@@ -22,6 +22,8 @@ export const Route = createFileRoute("/admin/payments")({
   component: RouteComponent,
 });
 
+const DAY_MS = 86_400_000;
+
 type CachedPayment = Omit<PaymentRow, "paidAt"> & { paidAt: string };
 
 const fetchPayments = async (): Promise<CachedPayment[]> => {
@@ -39,7 +41,7 @@ const fetchPayments = async (): Promise<CachedPayment[]> => {
       method: data.method,
       notes: data.notes,
       paidAt: toISO(data.paidAt) ?? new Date().toISOString(),
-      status: "paid",
+      status: data.status ?? "paid",
     };
   });
   rows.sort((a, b) => (a.paidAt < b.paidAt ? 1 : -1));
@@ -103,8 +105,22 @@ function RouteComponent() {
   });
 
   const paymentRows = useMemo(
-    () => (payments.data ?? []).map((p) => ({ ...p, paidAt: toDate(p.paidAt) ?? new Date() })),
-    [payments.data],
+    () =>
+      (payments.data ?? []).map((p) => {
+        const member = (members.data ?? []).find((m) => m.uid === p.memberId);
+        return { ...p, paidAt: toDate(p.paidAt) ?? new Date(), email: member?.email };
+      }),
+    [payments.data, members.data],
+  );
+
+  const pendingApprovals = useMemo(
+    () => paymentRows.filter((p) => p.status === "pending" && p.method === "pending"),
+    [paymentRows],
+  );
+
+  const approvedPayments = useMemo(
+    () => paymentRows.filter((p) => !(p.status === "pending" && p.method === "pending")),
+    [paymentRows],
   );
 
   const memberOptions: PaymentMember[] = useMemo(
@@ -180,6 +196,60 @@ function RouteComponent() {
     }
   };
 
+  const handleApprovePayment = async (payment: PaymentRow, data: PaymentData) => {
+    try {
+      await updateDoc(doc(db, "payments", payment.id), {
+        status: "paid",
+        method: data.method,
+        notes: data.notes || `Approved — ${data.method}`,
+        paidAt: new Date(),
+      });
+
+      const member = (members.data ?? []).find((m) => m.uid === payment.memberId);
+      const currentExpiry = member?.planExpiresAt
+        ? new Date(member.planExpiresAt as string)
+        : undefined;
+      const hasActivePlan = currentExpiry != null && currentExpiry.getTime() > Date.now();
+      const base = hasActivePlan ? currentExpiry!.getTime() : Date.now();
+      const planStart = hasActivePlan && member?.planStart
+        ? new Date(member.planStart as string)
+        : new Date();
+      const planExpiresAt = new Date(base + payment.daysAdded * DAY_MS);
+
+      await updateDoc(doc(db, "users", payment.memberId), {
+        planId: payment.planId,
+        planName: payment.planName,
+        planStart,
+        planExpiresAt,
+      });
+
+      toast.success(
+        `Payment of ₹${payment.amount.toLocaleString("en-IN")} approved for ${payment.memberName}. Plan activated.`,
+      );
+
+      void payments.refetch();
+      void members.refetch();
+    } catch (err) {
+      console.error("Failed to approve payment:", err);
+      toast("Failed to approve payment.", { variant: "danger" });
+    }
+  };
+
+  const handleRejectPayment = async (payment: PaymentRow) => {
+    try {
+      await updateDoc(doc(db, "payments", payment.id), {
+        status: "rejected",
+        notes: "Rejected by admin",
+      });
+
+      toast.info(`Payment request from ${payment.memberName} rejected.`);
+      void payments.refetch();
+    } catch (err) {
+      console.error("Failed to reject payment:", err);
+      toast("Failed to reject payment.", { variant: "danger" });
+    }
+  };
+
   const handlePrintReceipt = (payment: PaymentRow) => {
     const receipt = window.open("", "_blank", "width=400,height=600");
     if (!receipt) {
@@ -223,7 +293,8 @@ hr{border:0;border-top:1px dashed #999;margin:14px 0}
 
   return (
     <AdminPaymentsPage
-      payments={paymentRows}
+      payments={approvedPayments}
+      pendingApprovals={pendingApprovals}
       members={memberOptions}
       plans={plans.data ?? []}
       loading={loading}
@@ -233,6 +304,8 @@ hr{border:0;border-top:1px dashed #999;margin:14px 0}
       syncing={syncing}
       onSync={handleSync}
       onRecordPayment={handleRecordPayment}
+      onApprovePayment={handleApprovePayment}
+      onRejectPayment={handleRejectPayment}
       onPrintReceipt={handlePrintReceipt}
     />
   );

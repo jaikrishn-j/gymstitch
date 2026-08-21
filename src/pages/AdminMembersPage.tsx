@@ -32,6 +32,7 @@ export type PaymentRow = {
   id: string;
   memberId: string;
   memberName: string;
+  email?: string;
   planId: string;
   planName: string;
   amount: number;
