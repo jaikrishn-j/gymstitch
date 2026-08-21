@@ -13,6 +13,39 @@ import type { AppUser, AuthState } from './auth-types'
 
 const AuthContext = createContext<AuthState | null>(null)
 
+const MAX_PROFILE_RETRIES = 5
+const PROFILE_RETRY_DELAY = 400
+
+async function fetchUserProfile(
+  uid: string,
+): Promise<AppUser | null> {
+  const firebaseUser = auth.currentUser
+
+  for (let attempt = 0; attempt < MAX_PROFILE_RETRIES; attempt++) {
+    const snapshot = await getDoc(doc(db, 'users', uid))
+
+    if (snapshot.exists()) {
+      const data = snapshot.data()
+
+      return {
+        uid,
+        email: firebaseUser?.email ?? '',
+        name: firebaseUser?.displayName ?? '',
+        role: data.role,
+        permission: data.permission ?? undefined,
+      }
+    }
+
+    if (attempt < MAX_PROFILE_RETRIES - 1) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, PROFILE_RETRY_DELAY),
+      )
+    }
+  }
+
+  return null
+}
+
 export function AuthProvider({
   children,
 }: {
@@ -31,24 +64,14 @@ export function AuthProvider({
             return
           }
 
-          const userSnapshot = await getDoc(
-            doc(db, 'users', firebaseUser.uid),
-          )
+          const profile = await fetchUserProfile(firebaseUser.uid)
 
-          if (!userSnapshot.exists()) {
+          if (!profile) {
             setUser(null)
             return
           }
 
-          const data = userSnapshot.data()
-
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email ?? '',
-            name: firebaseUser.displayName ?? '',
-            role: data.role,
-            permission: data.permission ?? undefined,
-          })
+          setUser(profile)
         } catch (error) {
           console.error('Failed to initialize auth:', error)
           setUser(null)

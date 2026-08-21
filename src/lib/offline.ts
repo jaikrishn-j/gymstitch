@@ -31,11 +31,27 @@ export type PendingAttendance = {
   memberName: string;
   date: string;
   timeIn: string;
+  timeOut: string | null;
   weight: number | null;
   queuedAt: number;
 };
 
-export type PendingItem = PendingPayment | PendingAttendance;
+export type AttendanceUpdateFields = {
+  timeOut?: string;
+  weight?: number | null;
+};
+
+export type PendingAttendanceUpdate = {
+  kind: "attendance-update";
+  clientId: string;
+  docId: string;
+  memberId: string;
+  memberName: string;
+  fields: AttendanceUpdateFields;
+  queuedAt: number;
+};
+
+export type PendingItem = PendingPayment | PendingAttendance | PendingAttendanceUpdate;
 
 export type RawMember = {
   uid: string;
@@ -110,6 +126,13 @@ export function clearPending(): void {
   writeQueue([]);
 }
 
+export function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function newClientId(prefix: string): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
     return `${prefix}_${crypto.randomUUID()}`;
@@ -163,7 +186,7 @@ export function buildAttendancePayload(member: {
   const now = new Date();
   return {
     kind: "attendance",
-    clientId: newClientId("att"),
+    clientId: `att_${member.id}_${localDateKey(now)}`,
     memberId: member.id,
     memberName: member.name,
     date: now.toISOString(),
@@ -172,9 +195,34 @@ export function buildAttendancePayload(member: {
       minute: "2-digit",
       hour12: false,
     }),
+    timeOut: null,
     weight: null,
     queuedAt: Date.now(),
   };
+}
+
+export function buildAttendanceUpdatePayload(
+  member: { id: string; name: string },
+  docId: string,
+  fields: AttendanceUpdateFields,
+): PendingAttendanceUpdate {
+  return {
+    kind: "attendance-update",
+    clientId: newClientId("att_upd"),
+    docId,
+    memberId: member.id,
+    memberName: member.name,
+    fields,
+    queuedAt: Date.now(),
+  };
+}
+
+export function nowTimeString(): string {
+  return new Date().toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
 }
 
 async function applyPayment(p: PendingPayment): Promise<void> {
@@ -216,8 +264,13 @@ async function applyAttendance(a: PendingAttendance): Promise<void> {
     memberName: a.memberName,
     date: new Date(a.date),
     timeIn: a.timeIn,
+    timeOut: a.timeOut,
     weight: a.weight,
   });
+}
+
+async function applyAttendanceUpdate(u: PendingAttendanceUpdate): Promise<void> {
+  await updateDoc(doc(db, "attendance", u.docId), u.fields);
 }
 
 export async function flushPending(): Promise<{ flushed: number; failed: number }> {
@@ -228,8 +281,10 @@ export async function flushPending(): Promise<{ flushed: number; failed: number 
     try {
       if (item.kind === "payment") {
         await applyPayment(item);
-      } else {
+      } else if (item.kind === "attendance") {
         await applyAttendance(item);
+      } else {
+        await applyAttendanceUpdate(item);
       }
       removePending(item.clientId);
       flushed += 1;
@@ -246,6 +301,10 @@ export async function writePaymentOnline(p: PendingPayment): Promise<void> {
 
 export async function writeAttendanceOnline(a: PendingAttendance): Promise<void> {
   await applyAttendance(a);
+}
+
+export async function writeAttendanceUpdateOnline(u: PendingAttendanceUpdate): Promise<void> {
+  await applyAttendanceUpdate(u);
 }
 
 function toDateSafe(value: unknown): Date | undefined {

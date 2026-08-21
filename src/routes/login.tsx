@@ -1,17 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
 import { toast } from "@heroui/react";
 import { requireGuest } from "../auth/guard";
-import { auth, db } from "../lib/firebase";
+import { useAuth } from "../auth/auth-context";
+import { auth } from "../lib/firebase";
 import { LoginPage } from "../pages/LoginPage";
 import { useLoading } from "../components/providers/LoadingProvider";
-import type { AppUser } from "../auth/auth-types";
 
 export const Route = createFileRoute("/login")({
   beforeLoad: ({ context }) => {
@@ -20,29 +19,23 @@ export const Route = createFileRoute("/login")({
   component: RouteComponent,
 });
 
-async function resolveRole(uid: string): Promise<AppUser["role"]> {
-  const snap = await getDoc(doc(db, "users", uid));
-  const role = snap.exists() ? snap.data().role : "member";
-  return role === "admin" || role === "staff" ? role : "member";
-}
-
 function RouteComponent() {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const { show, hide } = useLoading();
   const [otpEmail, setOtpEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const goHome = async (uid: string) => {
-    const role = await resolveRole(uid);
-    navigate({ to: role === "member" ? "/member" : "/admin/dashboard" });
-  };
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    navigate({ to: user.role === "member" ? "/member" : "/admin/dashboard" });
+  }, [isAuthenticated, user, navigate]);
 
   const handleLogin = async (email: string, password: string) => {
     setError(null);
     show("Signing you in…");
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
-      await goHome(cred.user.uid);
+      await signInWithEmailAndPassword(auth, email, password);
     } catch {
       setError("Invalid email or password. Please try again.");
     } finally {
@@ -54,8 +47,7 @@ function RouteComponent() {
     setError(null);
     show("Connecting to Google…");
     try {
-      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
-      await goHome(cred.user.uid);
+      await signInWithPopup(auth, new GoogleAuthProvider());
     } catch {
       setError("Google sign-in failed. Please try again.");
     } finally {
@@ -63,7 +55,6 @@ function RouteComponent() {
     }
   };
 
- 
   return (
     <LoginPage
       onLogin={handleLogin}

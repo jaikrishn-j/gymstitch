@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   buildAttendancePayload,
+  buildAttendanceUpdatePayload,
   buildPaymentPayload,
   enqueuePending,
   flushPending,
   isOnline,
+  nowTimeString,
   pendingCount,
   subscribeOnline,
   writeAttendanceOnline,
+  writeAttendanceUpdateOnline,
   writePaymentOnline,
 } from "./offline";
-import type { PendingAttendance, PendingPayment, RawMember } from "./offline";
+import type {
+  PendingAttendance,
+  PendingAttendanceUpdate,
+  PendingPayment,
+  RawMember,
+} from "./offline";
 import type { PaymentData } from "../components/modals/RecordPaymentModal";
 
 function isNetworkError(err: unknown): boolean {
@@ -36,6 +44,15 @@ export type PaymentSyncResult = {
   recordAttendance: (
     member: { id: string; name: string },
   ) => Promise<{ queued: boolean; payload: PendingAttendance }>;
+  checkoutAttendance: (
+    member: { id: string; name: string },
+    docId: string,
+  ) => Promise<{ queued: boolean; payload: PendingAttendanceUpdate }>;
+  updateAttendanceWeight: (
+    member: { id: string; name: string },
+    docId: string,
+    weight: number,
+  ) => Promise<{ queued: boolean; payload: PendingAttendanceUpdate }>;
 };
 
 export function usePaymentSync(onSynced?: (info: { flushed: number }) => void): PaymentSyncResult {
@@ -123,6 +140,48 @@ export function usePaymentSync(onSynced?: (info: { flushed: number }) => void): 
     [refresh],
   );
 
+  const checkoutAttendance = useCallback(
+    async (member: { id: string; name: string }, docId: string) => {
+      const payload = buildAttendanceUpdatePayload(member, docId, {
+        timeOut: nowTimeString(),
+      });
+      if (isOnline()) {
+        try {
+          await writeAttendanceUpdateOnline(payload);
+          refresh();
+          return { queued: false, payload };
+        } catch (err) {
+          if (!isNetworkError(err)) throw err;
+        }
+      }
+      enqueuePending(payload);
+      refresh();
+      return { queued: true, payload };
+    },
+    [refresh],
+  );
+
+  const updateAttendanceWeight = useCallback(
+    async (member: { id: string; name: string }, docId: string, weight: number) => {
+      const payload = buildAttendanceUpdatePayload(member, docId, {
+        weight,
+      });
+      if (isOnline()) {
+        try {
+          await writeAttendanceUpdateOnline(payload);
+          refresh();
+          return { queued: false, payload };
+        } catch (err) {
+          if (!isNetworkError(err)) throw err;
+        }
+      }
+      enqueuePending(payload);
+      refresh();
+      return { queued: true, payload };
+    },
+    [refresh],
+  );
+
   return {
     pendingCount: pending,
     isOnline: online,
@@ -130,5 +189,7 @@ export function usePaymentSync(onSynced?: (info: { flushed: number }) => void): 
     syncNow,
     recordPayment,
     recordAttendance,
+    checkoutAttendance,
+    updateAttendanceWeight,
   };
 }

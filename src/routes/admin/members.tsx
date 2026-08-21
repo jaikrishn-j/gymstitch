@@ -6,6 +6,7 @@ import { db } from "../../lib/firebase";
 import { CACHE_KEYS, TTL, capAttendance, capPayments, toDate, toISO } from "../../lib/cache";
 import { useCachedData } from "../../lib/useCachedData";
 import { usePaymentSync } from "../../lib/usePaymentSync";
+import { localDateKey } from "../../lib/offline";
 import type { PendingPayment, RawMember } from "../../lib/offline";
 import { AdminMembersPage } from "../../pages/AdminMembersPage";
 import type { Member, PaymentRow, AttendanceRow } from "../../pages/AdminMembersPage";
@@ -136,6 +137,7 @@ const fetchAttendanceList = async (): Promise<CachedAttendance[]> => {
       memberName: data.memberName,
       date: toISO(data.date) ?? new Date().toISOString(),
       timeIn: data.timeIn,
+      timeOut: data.timeOut,
       weight: data.weight ?? null,
     };
   });
@@ -303,25 +305,81 @@ function RouteComponent() {
     }
   };
 
-  const handleMarkAttendance = async (member: Member) => {
-    const { queued, payload } = await paymentSync.recordAttendance(member);
-    attendance.mutate((prev) => {
-      const row: CachedAttendance = {
-        id: payload.clientId,
-        memberId: payload.memberId,
-        memberName: payload.memberName,
-        date: payload.date,
-        timeIn: payload.timeIn,
-        weight: null,
-      };
-      return capAttendance([row, ...(prev ?? [])]);
-    });
-    if (queued) {
-      toast.warning(`Check-in for ${member.name} queued — will sync when back online.`);
-    } else {
-      toast.success(`Check-in marked for ${member.name}.`);
+const findTodayAttendance = (rows: CachedAttendance[], memberId: string) => {
+  const todayKey = localDateKey(new Date());
+  return (rows ?? []).find(
+    (a) =>
+      a.memberId === memberId &&
+      localDateKey(toDate(a.date) ?? new Date()) === todayKey,
+  );
+};
+
+const handleMarkAttendance = async (member: Member) => {
+  const todayRow = findTodayAttendance(attendance.data ?? [], member.id);
+
+  if (todayRow) {
+    if (todayRow.timeOut) {
+      toast.info(`${member.name} is already checked out today.`);
+      return;
     }
-  };
+    const { queued, payload } = await paymentSync.checkoutAttendance(
+      member,
+      todayRow.id,
+    );
+    attendance.mutate((prev) =>
+      (prev ?? []).map((r) =>
+        r.id === todayRow.id ? { ...r, timeOut: payload.fields.timeOut ?? null } : r,
+      ),
+    );
+    if (queued) {
+      toast.warning(`Check-out for ${member.name} queued — will sync when back online.`);
+    } else {
+      toast.success(`Checked out ${member.name}.`);
+    }
+    return;
+  }
+
+  const { queued, payload } = await paymentSync.recordAttendance(member);
+  attendance.mutate((prev) => {
+    const row: CachedAttendance = {
+      id: payload.clientId,
+      memberId: payload.memberId,
+      memberName: payload.memberName,
+      date: payload.date,
+      timeIn: payload.timeIn,
+      timeOut: payload.timeOut,
+      weight: null,
+    };
+    return capAttendance([row, ...(prev ?? [])]);
+  });
+  if (queued) {
+    toast.warning(`Check-in for ${member.name} queued — will sync when back online.`);
+  } else {
+    toast.success(`Check-in marked for ${member.name}.`);
+  }
+};
+
+const handleUpdateWeight = async (
+  member: Member,
+  attendanceId: string,
+  weight: number,
+) => {
+  const { queued, payload } = await paymentSync.updateAttendanceWeight(
+    member,
+    attendanceId,
+    weight,
+  );
+  attendance.mutate((prev) =>
+    (prev ?? []).map((r) =>
+      r.id === attendanceId ? { ...r, weight: payload.fields.weight ?? r.weight } : r,
+    ),
+  );
+  if (queued) {
+    toast.warning(`Weight for ${member.name} queued — will sync when back online.`);
+  } else {
+    toast.success(`Weight logged for ${member.name}: ${weight} kg.`);
+  }
+};
 
   return (
     <>
@@ -339,6 +397,7 @@ function RouteComponent() {
         onAddMember={handleAddMember}
         onRecordPayment={handleRecordPayment}
         onMarkAttendance={handleMarkAttendance}
+        onUpdateWeight={handleUpdateWeight}
       />
       <ResetLinkModal
         open={reset != null}

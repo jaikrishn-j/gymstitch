@@ -265,6 +265,7 @@ export function AddEquipmentModal({
         <Input
           className="mt-2"
           placeholder="https://images.unsplash.com/photo-..."
+          aria-label="Equipment image URL"
           value={imageUrl}
           onValueChange={(v) => {
             setImageUrl(v);

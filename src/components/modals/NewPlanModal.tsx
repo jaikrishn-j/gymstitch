@@ -153,6 +153,7 @@ export function NewPlanModal({ onSave, onClose, initial }: NewPlanModalProps) {
                 value={feature}
                 onValueChange={(v) => updateFeature(index, v)}
                 placeholder="e.g. Guest passes"
+                aria-label={`Feature ${index + 1}`}
                 fullWidth
               />
               <button

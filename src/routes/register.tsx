@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
@@ -8,6 +8,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { requireGuest } from "../auth/guard";
+import { useAuth } from "../auth/auth-context";
 import { auth, db } from "../lib/firebase";
 import { RegisterPage } from "../pages/RegisterPage";
 import { useLoading } from "../components/providers/LoadingProvider";
@@ -22,8 +23,14 @@ export const Route = createFileRoute("/register")({
 
 function RouteComponent() {
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const { show, hide } = useLoading();
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    navigate({ to: user.role === "member" ? "/member" : "/admin/dashboard" });
+  }, [isAuthenticated, user, navigate]);
 
   const handleRegister = async ({
     name,
@@ -42,7 +49,7 @@ function RouteComponent() {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(cred.user, { displayName: name });
 
-      const defaultRole: UserRole = "member"
+      const defaultRole: UserRole = "member";
 
       await setDoc(doc(db, "users", cred.user.uid), {
         name,
@@ -51,7 +58,6 @@ function RouteComponent() {
         role: defaultRole,
         createdAt: new Date().toISOString(),
       });
-      navigate({ to: "/admin/dashboard" });
     } catch {
       setError("Registration failed. This email may already be in use.");
     } finally {
@@ -64,7 +70,8 @@ function RouteComponent() {
     show("Connecting to Google…");
     try {
       const cred = await signInWithPopup(auth, new GoogleAuthProvider());
-      const defaultRole: UserRole = "member"
+      const defaultRole: UserRole = "member";
+
       await setDoc(doc(db, "users", cred.user.uid), {
         name: cred.user.displayName ?? "",
         email: cred.user.email ?? "",
@@ -72,8 +79,7 @@ function RouteComponent() {
         role: defaultRole,
         createdAt: new Date().toISOString(),
       });
-      navigate({ to: "/member" });
-    } catch (error: any) {
+    } catch {
       setError("Google sign-up failed. Please try again.");
     } finally {
       hide();

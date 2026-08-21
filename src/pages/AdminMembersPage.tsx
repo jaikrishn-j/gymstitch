@@ -10,6 +10,7 @@ import {
 } from "../components/ui";
 import { AdminModal } from "../components/modals/AdminModal";
 import { useModal } from "../components/providers/ModalProvider";
+import { localDateKey } from "../lib/offline";
 import { RecordPaymentModal } from "../components/modals/RecordPaymentModal";
 import type { PaymentData } from "../components/modals/RecordPaymentModal";
 import { AddMemberModal } from "../components/modals/AddMemberModal";
@@ -47,6 +48,7 @@ export type AttendanceRow = {
   memberName: string;
   date: Date;
   timeIn: string;
+  timeOut?: string | null;
   weight?: number | null;
 };
 
@@ -77,6 +79,7 @@ export type AdminMembersPageProps = {
   onAddMember: (data: AddMemberData) => Promise<void>;
   onRecordPayment: (member: Member, data: PaymentData) => Promise<void>;
   onMarkAttendance: (member: Member) => Promise<void>;
+  onUpdateWeight: (member: Member, attendanceId: string, weight: number) => Promise<void>;
 };
 
 export function AdminMembersPage({
@@ -93,6 +96,7 @@ export function AdminMembersPage({
   onAddMember,
   onRecordPayment,
   onMarkAttendance,
+  onUpdateWeight,
 }: AdminMembersPageProps) {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [query, setQuery] = useState("");
@@ -295,6 +299,7 @@ export function AdminMembersPage({
           payments={payments.filter((p) => p.memberId === detail.id)}
           attendance={attendance.filter((a) => a.memberId === detail.id)}
           onMarkAttendance={onMarkAttendance}
+          onUpdateWeight={onUpdateWeight}
           onClose={() => setDetail(null)}
         />
       ) : null}
@@ -307,18 +312,28 @@ function MemberDetailModal({
   payments,
   attendance,
   onMarkAttendance,
+  onUpdateWeight,
   onClose,
 }: {
   member: Member;
   payments: PaymentRow[];
   attendance: AttendanceRow[];
   onMarkAttendance: (member: Member) => Promise<void>;
+  onUpdateWeight: (member: Member, attendanceId: string, weight: number) => Promise<void>;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<"att" | "pay">("att");
   const [marking, setMarking] = useState(false);
+  const [editingWeightId, setEditingWeightId] = useState<string | null>(null);
+  const [weightDraft, setWeightDraft] = useState("");
+  const [savingWeightId, setSavingWeightId] = useState<string | null>(null);
 
   const lastPayment = payments[0];
+
+  const todayKey = localDateKey(new Date());
+  const todayRecord = attendance.find(
+    (a) => localDateKey(a.date) === todayKey,
+  );
 
   const weekly = useMemo(() => {
     const now = new Date();
@@ -349,6 +364,25 @@ function MemberDetailModal({
       // Handled by the route
     } finally {
       setMarking(false);
+    }
+  };
+
+  const startEditWeight = (record: AttendanceRow) => {
+    setEditingWeightId(record.id);
+    setWeightDraft(record.weight != null ? String(record.weight) : "");
+  };
+
+  const handleWeightSave = async (record: AttendanceRow) => {
+    const parsed = Number(weightDraft);
+    if (Number.isNaN(parsed) || parsed <= 0) return;
+    setSavingWeightId(record.id);
+    try {
+      await onUpdateWeight(member, record.id, parsed);
+      setEditingWeightId(null);
+    } catch {
+      // Handled by the route
+    } finally {
+      setSavingWeightId(null);
     }
   };
 
@@ -387,14 +421,31 @@ function MemberDetailModal({
       {tab === "att" ? (
         <>
           <div className="flex flex-wrap gap-2.5">
-            <Button
-              variant="secondary"
-              size="sm"
-              isDisabled={marking}
-              onPress={handleMark}
-            >
-              {marking ? "Marking…" : "+ Mark today's check-in"}
-            </Button>
+            {todayRecord ? (
+              todayRecord.timeOut ? (
+                <Chip color="success" variant="soft" size="sm">
+                  Checked in {todayRecord.timeIn} → out {todayRecord.timeOut}
+                </Chip>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  isDisabled={marking}
+                  onPress={handleMark}
+                >
+                  {marking ? "Checking out…" : `Check out · in at ${todayRecord.timeIn}`}
+                </Button>
+              )
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                isDisabled={marking}
+                onPress={handleMark}
+              >
+                {marking ? "Marking…" : "+ Mark today's check-in"}
+              </Button>
+            )}
           </div>
           <div className="card pad">
             <h3 style={{ fontSize: 16 }}>Weekly Attendance Frequency</h3>
@@ -421,7 +472,8 @@ function MemberDetailModal({
                   <tr>
                     <th>Date</th>
                     <th>In</th>
-                    <th className="td-right">Weight</th>
+                    <th>Out</th>
+                    <th className="td-right">Weight (kg)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -435,8 +487,39 @@ function MemberDetailModal({
                         })}
                       </td>
                       <td>{record.timeIn}</td>
+                      <td>{record.timeOut ?? "—"}</td>
                       <td className="td-right">
-                        {record.weight != null ? `${record.weight} kg` : "—"}
+                        {editingWeightId === record.id ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <input
+                              className="input"
+                              style={{ width: 88, textAlign: "right" }}
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              value={weightDraft}
+                              onChange={(e) => setWeightDraft(e.target.value)}
+                            />
+                            <Button
+                              size="sm"
+                              isDisabled={savingWeightId === record.id}
+                              onPress={() => handleWeightSave(record)}
+                            >
+                              {savingWeightId === record.id ? "…" : "✓"}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <span>{record.weight != null ? `${record.weight} kg` : "—"}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onPress={() => startEditWeight(record)}
+                            >
+                              Edit
+                            </Button>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

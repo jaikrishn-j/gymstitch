@@ -28,6 +28,8 @@ export function Input({
   onValueChange,
   ...props
 }: InputProps) {
+  const accessibleLabel =
+    props["aria-label"] ?? (label ? undefined : props.placeholder);
   return (
     <TextField
       fullWidth={fullWidth}
@@ -37,6 +39,7 @@ export function Input({
       {label ? <Label>{label}</Label> : null}
       <HeroInput
         {...props}
+        aria-label={accessibleLabel}
         onChange={(e) => {
           props.onChange?.(e);
           onValueChange?.(e.target.value);

@@ -162,7 +162,7 @@ export function AdminPlansPage({
               </div>
               <div className="p-bill">{formatBill(p.days)}</div>
               <ul className="p-feats">
-                {p.features.map((f) => (
+                {(p.features ?? []).map((f) => (
                   <li key={f}>
                     <CheckIcon />
                     {f}
@@ -215,7 +215,7 @@ export function AdminPlansPage({
                     {formatPrice(row.price)}
                   </td>
                   <td data-label="Billing">{row.days} days</td>
-                  <td data-label="Features">{row.features.length}</td>
+                  <td data-label="Features">{(row.features ?? []).length}</td>
                   <td data-label="Status">
                     <Chip
                       color={row.status === "active" ? "success" : "default"}
