@@ -158,6 +158,10 @@ body {
 .pad-lg {
   padding: 24px;
 }
+.borderless {
+  border: none;
+  box-shadow: none;
+}
 .pad-sm {
   padding: 14px 16px;
 }
@@ -846,7 +850,7 @@ textarea.input:focus {
 }
 .ring .t {
   fill: none;
-  stroke: var(--color-border);
+  stroke: transparent;
   stroke-width: 8;
 }
 .ring .f {
@@ -1577,6 +1581,37 @@ textarea.input:focus {
 .plan-meta b {
   color: var(--color-fg);
 }
+.metric-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
+.sev-card {
+  padding: 22px;
+  border: none;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+.rings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 8px;
+}
+.rings .cap {
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-top: 6px;
+}
+.anon-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-top: 20px;
+}
 .plan-sheet-card {
   padding: 16px;
   cursor: pointer;
@@ -1640,8 +1675,157 @@ textarea.input:focus {
 }
 
 /* ============================================================
-   Plans / equipment cards
+   Bottom drawer
    ============================================================ */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 50;
+}
+.drawer-scrim.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.bottom-drawer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 51;
+  background: var(--color-surface);
+  border-radius: 20px 20px 0 0;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.bottom-drawer.open {
+  transform: translateY(0);
+}
+.drawer-handle {
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 4px;
+  flex-shrink: 0;
+}
+.drawer-handle span {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-border);
+}
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 24px 14px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.drawer-head h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.drawer-head .sub {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
+  -webkit-overflow-scrolling: touch;
+}
+.drawer-body .loading-more {
+  text-align: center;
+  padding: 16px 0;
+  font-size: 13px;
+  color: var(--color-muted);
+}
+.drawer-body .end-msg {
+  text-align: center;
+  padding: 16px 0;
+  font-size: 12px;
+  color: var(--color-muted);
+  opacity: 0.6;
+}
+
+/* ============================================================
+   User dropdown
+   ============================================================ */
+.user-dropdown {
+  position: relative;
+}
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 2px solid var(--color-border);
+  transition: border-color var(--duration-fast);
+}
+.user-avatar:hover {
+  border-color: var(--color-muted);
+}
+.user-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+  padding: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.15s, transform 0.15s;
+  z-index: 60;
+}
+.user-menu.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: var(--color-fg);
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+.user-menu-item:hover {
+  background: var(--color-bg);
+}
+.user-menu-item.danger {
+  color: var(--color-danger);
+}
+.user-menu-item.danger:hover {
+  background: var(--color-danger-soft);
+}
 .plan-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

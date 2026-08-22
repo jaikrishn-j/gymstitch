@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { Modal, useOverlayState } from "@heroui/react";
 import { Bell, Check, Download, Info, LogOut, X } from "lucide-react";
@@ -80,7 +80,7 @@ export type MemberDashboardPageProps = {
   onMarkAllRead: () => void;
 };
 
-type ModalName = "plan" | "receipts" | "messages" | "logWeight" | "bell" | null;
+type ModalName = "plan" | "logWeight" | "bell" | null;
 
 export function MemberDashboardPage({
   name,
@@ -101,6 +101,22 @@ export function MemberDashboardPage({
   const [selectedPlanId, setSelectedPlanId] = useState<string>("");
   const [weightIn, setWeightIn] = useState("");
   const [weightOut, setWeightOut] = useState("");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState<"receipts" | "messages" | null>(null);
+  const [paymentsVisible, setPaymentsVisible] = useState(5);
+  const [messagesVisible, setMessagesVisible] = useState(5);
+
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [userMenuOpen]);
 
   const defaultPlans: MemberPlan[] = [
     { id: "monthly", name: "Monthly Starter", meta: "1 month · full access", price: 899, days: 30 },
@@ -221,20 +237,29 @@ export function MemberDashboardPage({
           >
             <Bell size={18} />
           </button>
-          <a href="/" className="btn btn-secondary btn-sm">
-            Overview
-          </a>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={onLogout}
-          >
-            <LogOut size={14} />
-            Log out
-          </button>
           <Button size="sm" onPress={() => setOpenModal("logWeight")}>
             Log weight
           </Button>
+          <div className="user-dropdown" ref={userMenuRef}>
+            <button
+              type="button"
+              className="user-avatar"
+              aria-label="User menu"
+              onClick={() => setUserMenuOpen((s) => !s)}
+            >
+              {name.charAt(0).toUpperCase()}
+            </button>
+            <div className={cn("user-menu", userMenuOpen && "open")}>
+              <a href="/" className="user-menu-item">
+                <Info size={15} />
+                Overview
+              </a>
+              <button type="button" className="user-menu-item danger" onClick={onLogout}>
+                <LogOut size={15} />
+                Log out
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -354,7 +379,7 @@ export function MemberDashboardPage({
         </div>
 
         <div className="anon-grid">
-          <div className="card pad">
+          <div className="card pad borderless">
             <div className="eyebrow" style={{ marginBottom: 10 }}>
               Your payments
             </div>
@@ -374,13 +399,13 @@ export function MemberDashboardPage({
               <button
                 type="button"
                 className="btn btn-ghost btn-sm mt-3.5 p-0 text-accent"
-                onClick={() => setOpenModal("receipts")}
+                onClick={() => { setDrawerOpen("receipts"); setPaymentsVisible(5); }}
               >
                 View receipts →
               </button>
             )}
           </div>
-          <div className="card pad">
+          <div className="card pad borderless">
             <div className="eyebrow" style={{ marginBottom: 12 }}>
               Gym messages
             </div>
@@ -393,7 +418,7 @@ export function MemberDashboardPage({
             <button
               type="button"
               className="btn btn-ghost btn-sm p-0 text-accent"
-              onClick={() => setOpenModal("messages")}
+              onClick={() => { setDrawerOpen("messages"); setMessagesVisible(5); }}
             >
               Open messages →
             </button>
@@ -481,15 +506,15 @@ export function MemberDashboardPage({
         </div>
       </MemberModal>
 
-      {/* Receipts modal */}
-      <MemberModal
-        open={openModal === "receipts"}
-        onClose={() => setOpenModal(null)}
-        title="Payment Receipts & Invoices"
-        subtitle="Download digital tax invoices and payment confirmations"
+      {/* Receipts bottom drawer */}
+      <BottomDrawer
+        open={drawerOpen === "receipts"}
+        onClose={() => setDrawerOpen(null)}
+        title="Payment Receipts"
+        subtitle={`${receipts.length} total payments`}
       >
         <div className="flex flex-col gap-3">
-          {receipts.map((receipt) => (
+          {receipts.slice(0, paymentsVisible).map((receipt) => (
             <div className="receipt-item" key={receipt.id}>
               <div className="flex items-center gap-3">
                 <div
@@ -524,25 +549,34 @@ export function MemberDashboardPage({
             </div>
           ))}
         </div>
-      </MemberModal>
+        {paymentsVisible < receipts.length && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm mt-3 w-full"
+            onClick={() => setPaymentsVisible((v) => v + 5)}
+          >
+            Load more
+          </button>
+        )}
+        {paymentsVisible >= receipts.length && receipts.length > 5 && (
+          <div className="end-msg">All payments loaded</div>
+        )}
+      </BottomDrawer>
 
-      {/* Messages modal */}
-      <MemberModal
-        open={openModal === "messages"}
-        onClose={() => setOpenModal(null)}
-        title="Gym Announcements & Messages"
-        subtitle="Direct notices and updates from GymStitch management"
+      {/* Messages bottom drawer */}
+      <BottomDrawer
+        open={drawerOpen === "messages"}
+        onClose={() => setDrawerOpen(null)}
+        title="Gym Messages"
+        subtitle={`${messages.filter((m) => m.unread).length} unread`}
         footer={
-          <>
-            <Button variant="secondary" onPress={() => setOpenModal(null)}>
-              Close
-            </Button>
-            <Button onPress={onMarkAllRead}>Mark all as read</Button>
-          </>
+          <Button size="sm" onPress={onMarkAllRead}>
+            Mark all as read
+          </Button>
         }
       >
         <div className="flex flex-col gap-3">
-          {messages.map((message) => (
+          {messages.slice(0, messagesVisible).map((message) => (
             <div
               key={message.id}
               className={cn("msg-item", message.unread && "unread")}
@@ -576,7 +610,19 @@ export function MemberDashboardPage({
             </div>
           ))}
         </div>
-      </MemberModal>
+        {messagesVisible < messages.length && (
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm mt-3 w-full"
+            onClick={() => setMessagesVisible((v) => v + 5)}
+          >
+            Load more
+          </button>
+        )}
+        {messagesVisible >= messages.length && messages.length > 5 && (
+          <div className="end-msg">All messages loaded</div>
+        )}
+      </BottomDrawer>
 
       {/* Log weight modal */}
       <MemberModal
@@ -764,6 +810,57 @@ function Ring({
       </div>
       <div className="cap">{cap}</div>
     </div>
+  );
+}
+
+function BottomDrawer({
+  open,
+  onClose,
+  title,
+  subtitle,
+  footer,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  footer?: ReactNode;
+  children: ReactNode;
+}) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  return (
+    <>
+      <div
+        className={cn("drawer-scrim", open && "open")}
+        onClick={onClose}
+      />
+      <div className={cn("bottom-drawer", open && "open")}>
+        <div className="drawer-handle" onClick={onClose}>
+          <span />
+        </div>
+        <div className="drawer-head">
+          <div>
+            <h3>{title}</h3>
+            {subtitle ? <div className="sub">{subtitle}</div> : null}
+          </div>
+          {footer}
+        </div>
+        <div className="drawer-body" ref={bodyRef}>
+          {children}
+        </div>
+      </div>
+    </>
   );
 }
 
