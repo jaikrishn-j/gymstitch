@@ -5,10 +5,11 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
 } from "firebase/auth";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { toast } from "@heroui/react";
 import { requireGuest } from "../auth/guard";
-import { useAuth } from "../auth/auth-context";
-import { auth } from "../lib/firebase";
+import { useAuth, useRefreshProfile } from "../auth/auth-context";
+import { auth, db } from "../lib/firebase";
 import { LoginPage } from "../pages/LoginPage";
 import { useLoading } from "../components/providers/LoadingProvider";
 
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/login")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const refreshProfile = useRefreshProfile();
   const { show, hide } = useLoading();
   const [otpEmail, setOtpEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +49,18 @@ function RouteComponent() {
     setError(null);
     show("Connecting to Google…");
     try {
-      await signInWithPopup(auth, new GoogleAuthProvider());
+      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+      if (!userDoc.exists()) {
+        await setDoc(doc(db, "users", cred.user.uid), {
+          name: cred.user.displayName ?? "",
+          email: cred.user.email ?? "",
+          phone: "",
+          role: "member",
+          createdAt: new Date().toISOString(),
+        });
+      }
+      await refreshProfile();
     } catch {
       setError("Google sign-in failed. Please try again.");
     } finally {
