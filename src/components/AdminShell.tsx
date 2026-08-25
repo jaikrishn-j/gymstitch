@@ -9,6 +9,7 @@ import {
   Menu,
   ReceiptText,
   Settings,
+  User,
   Users,
   Wrench,
 } from "lucide-react";
@@ -55,6 +56,7 @@ export type AdminShellProps = {
   status?: { mode: "online" | "offline"; label: string };
   topbarActions?: ReactNode;
   sidebarFoot?: ReactNode;
+  onNotifications?: () => void;
   children: ReactNode;
 };
 
@@ -64,6 +66,7 @@ export function AdminShell({
   status,
   topbarActions,
   sidebarFoot,
+  onNotifications,
   children,
 }: AdminShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -125,7 +128,12 @@ export function AdminShell({
               </span>
             ) : null}
             {topbarActions}
-            <button type="button" className="icon-btn" aria-label="Notifications">
+            <button
+              type="button"
+              className="icon-btn"
+              aria-label="Notifications"
+              onClick={onNotifications}
+            >
               <span style={{ position: "relative" }}>
                 <Bell size={18} />
                 <i
@@ -140,6 +148,9 @@ export function AdminShell({
                   }}
                 />
               </span>
+            </button>
+            <button type="button" className="icon-btn" aria-label="Account">
+              <User size={18} />
             </button>
           </div>
         </header>
