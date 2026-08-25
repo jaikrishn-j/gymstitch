@@ -84,6 +84,14 @@ export function AuthProvider({
     return unsubscribe
   }, [])
 
+  const refreshProfile = async () => {
+    const firebaseUser = auth.currentUser
+    if (firebaseUser) {
+      const profile = await fetchUserProfile(firebaseUser.uid)
+      setUser(profile)
+    }
+  }
+
   if(isLoading){
     return(
         <div className='h-screen w-full'>
@@ -98,6 +106,7 @@ export function AuthProvider({
         user,
         isAuthenticated: user !== null,
         isLoading,
+        refreshProfile,
       }}
     >
       {children}
@@ -115,4 +124,16 @@ export function useAuth() {
   }
 
   return context
+}
+
+export function useRefreshProfile() {
+  const context = useContext(AuthContext)
+
+  if (!context) {
+    throw new Error(
+      'useRefreshProfile must be used inside AuthProvider',
+    )
+  }
+
+  return context.refreshProfile
 }

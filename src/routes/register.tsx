@@ -8,7 +8,7 @@ import {
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { requireGuest } from "../auth/guard";
-import { useAuth } from "../auth/auth-context";
+import { useAuth, useRefreshProfile } from "../auth/auth-context";
 import { auth, db } from "../lib/firebase";
 import { RegisterPage } from "../pages/RegisterPage";
 import { useLoading } from "../components/providers/LoadingProvider";
@@ -24,6 +24,7 @@ export const Route = createFileRoute("/register")({
 function RouteComponent() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+  const refreshProfile = useRefreshProfile();
   const { show, hide } = useLoading();
   const [error, setError] = useState<string | null>(null);
 
@@ -79,6 +80,7 @@ function RouteComponent() {
         role: defaultRole,
         createdAt: new Date().toISOString(),
       });
+      await refreshProfile();
     } catch {
       setError("Google sign-up failed. Please try again.");
     } finally {
