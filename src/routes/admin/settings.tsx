@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { signOut } from "firebase/auth";
 import { toast } from "@heroui/react";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { db, auth } from "../../lib/firebase";
 import { savePaymentGatewayConfig } from "../../lib/functions";
 import { AdminSettingsPage } from "../../pages/AdminSettingsPage";
 import type { GymSettings } from "../../pages/AdminSettingsPage";
@@ -12,8 +13,15 @@ export const Route = createFileRoute("/admin/settings")({
 });
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const [initial, setInitial] = useState<Partial<GymSettings> | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast.success("Signed out successfully.");
+    navigate({ to: "/login" });
+  };
 
   useEffect(() => {
     async function loadSettings() {
@@ -91,6 +99,7 @@ function RouteComponent() {
       onSave={handleSave}
       onDiscard={handleDiscard}
       onTestConnection={handleTestConnection}
+      onLogout={handleLogout}
     />
   );
 }

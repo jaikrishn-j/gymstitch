@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { signOut } from "firebase/auth";
 import { toast } from "@heroui/react";
 import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { db, auth } from "../../lib/firebase";
 import { CACHE_KEYS, TTL, capPayments, toDate, toISO } from "../../lib/cache";
 import { useCachedData } from "../../lib/useCachedData";
 import { usePaymentSync } from "../../lib/usePaymentSync";
@@ -76,11 +77,13 @@ const fetchPlans = async (): Promise<PlanOption[]> => {
       name: data.name,
       price: data.price,
       days: data.days,
+      offerPrice: data.offerPrice ?? null,
     };
   });
 };
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const payments = useCachedData<CachedPayment[]>({
     key: CACHE_KEYS.payments,
     ttl: TTL.payments,
@@ -96,6 +99,12 @@ function RouteComponent() {
     ttl: TTL.plans,
     fetch: fetchPlans,
   });
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast.success("Signed out successfully.");
+    navigate({ to: "/login" });
+  };
 
   const paymentSync = usePaymentSync(({ flushed }) => {
     if (flushed > 0) {
@@ -307,6 +316,7 @@ hr{border:0;border-top:1px dashed #999;margin:14px 0}
       onApprovePayment={handleApprovePayment}
       onRejectPayment={handleRejectPayment}
       onPrintReceipt={handlePrintReceipt}
+      onLogout={handleLogout}
     />
   );
 }

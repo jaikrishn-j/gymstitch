@@ -22,7 +22,19 @@ export type PlanOption = {
   name: string;
   price: number;
   days: number;
+  offerPrice?: number | string | null;
 };
+
+/** Chargeable price — prefer the offer price when present, else the original. */
+export function planEffectivePrice(
+  plan: Pick<PlanOption, "price" | "offerPrice">,
+): number {
+  if (plan.offerPrice != null && plan.offerPrice !== "") {
+    const parsed = Number(plan.offerPrice);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return plan.price;
+}
 
 export type AddMemberModalProps = {
   onSave: (data: AddMemberData) => Promise<void>;
@@ -63,11 +75,17 @@ export function AddMemberModal({
 
   const planOptions = [
     { id: "", label: "No plan right now (Register only)" },
-    ...plans.map((plan) => ({
-      id: plan.id,
-      label: plan.name,
-      description: `₹${plan.price.toLocaleString("en-IN")} · ${plan.days} days`,
-    })),
+    ...plans.map((plan) => {
+      const effective = planEffectivePrice(plan);
+      const hasOffer = effective !== plan.price;
+      return {
+        id: plan.id,
+        label: plan.name,
+        description: hasOffer
+          ? `₹${effective.toLocaleString("en-IN")} (offer) · was ₹${plan.price.toLocaleString("en-IN")} · ${plan.days} days`
+          : `₹${effective.toLocaleString("en-IN")} · ${plan.days} days`,
+      };
+    }),
   ];
 
   const set = <K extends keyof AddMemberData>(key: K, value: string) =>
@@ -97,6 +115,7 @@ export function AddMemberModal({
     <ModalShell
       title="Add new member"
       subtitle="Register a member & assign initial plan. Required fields marked with *"
+      className="modal-body-scroll"
       onClose={onClose}
       footer={
         <>

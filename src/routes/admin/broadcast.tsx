@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { signOut } from "firebase/auth";
 import { toast } from "@heroui/react";
+import { auth } from "../../lib/firebase";
 import { AdminBroadcastPage } from "../../pages/AdminBroadcastPage";
 
 export const Route = createFileRoute("/admin/broadcast")({
@@ -7,6 +9,14 @@ export const Route = createFileRoute("/admin/broadcast")({
 });
 
 function RouteComponent() {
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast.success("Signed out successfully.");
+    navigate({ to: "/login" });
+  };
+
   const handleSend = async (data: {
     title: string;
     message: string;
@@ -17,5 +27,5 @@ function RouteComponent() {
     );
   };
 
-  return <AdminBroadcastPage onSend={handleSend} />;
+  return <AdminBroadcastPage onSend={handleSend} onLogout={handleLogout} />;
 }

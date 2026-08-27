@@ -10,6 +10,7 @@ export type PlanData = {
   offerPrice: string;
   days: number;
   features: string[];
+  requireApproval: boolean;
 };
 
 export type NewPlanModalProps = {
@@ -32,6 +33,7 @@ export function NewPlanModal({ onSave, onClose, initial }: NewPlanModalProps) {
       ? initial.features
       : ["Full equipment access", "Locker room & shower access"],
   );
+  const [requireApproval, setRequireApproval] = useState(initial?.requireApproval ?? false);
 
   const updateFeature = (index: number, value: string) =>
     setFeatures((prev) =>
@@ -54,6 +56,7 @@ export function NewPlanModal({ onSave, onClose, initial }: NewPlanModalProps) {
         offerPrice,
         days,
         features: features.map((f) => f.trim()).filter(Boolean),
+        requireApproval,
       });
       onClose?.();
     } catch {
@@ -91,7 +94,7 @@ export function NewPlanModal({ onSave, onClose, initial }: NewPlanModalProps) {
     >
       <div className="preview-card">
         <div className="preview-title">Live Preview Card</div>
-        <div className="preview-content">
+        <div className="preview-content flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="preview-name">{name.trim() || "Unnamed plan"}</div>
             <div className="text-xs text-muted">{days} days billing</div>
@@ -141,6 +144,21 @@ export function NewPlanModal({ onSave, onClose, initial }: NewPlanModalProps) {
         value={String(days)}
         onValueChange={(v) => setDays(Number(v))}
       />
+
+      <div className="field">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={requireApproval}
+            onChange={(e) => setRequireApproval(e.target.checked)}
+            className="checkbox"
+          />
+          <span className="text-sm text-fg">Require admin approval for this plan</span>
+        </label>
+        <p className="text-xs text-muted mt-1">
+          Members must request approval instead of paying directly.
+        </p>
+      </div>
 
       <div className="field">
         <span className="block text-[13px] font-semibold text-fg">

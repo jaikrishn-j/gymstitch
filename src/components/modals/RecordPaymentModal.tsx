@@ -28,12 +28,41 @@ export type RecordPaymentModalProps = {
   memberId?: string;
   memberMeta?: string;
   members?: PaymentMember[];
-  plans?: { id: string; name: string; price: number; days: number }[];
+  plans?: {
+    id: string;
+    name: string;
+    price: number;
+    days: number;
+    offerPrice?: number | string | null;
+  }[];
+  /** Pre-select a specific plan (e.g. the plan a member requested approval for). */
+  defaultPlanId?: string;
+  /** Fallback amount used when the default plan can't be resolved to a known plan. */
+  presetAmount?: number;
+  /** Fallback days used when the default plan can't be resolved to a known plan. */
+  presetDays?: number;
   onSave: (data: PaymentData) => Promise<void>;
   onClose?: () => void;
 };
 
 const CUSTOM_PLAN_ID = "custom";
+
+/**
+ * Resolve the chargeable price for a plan — always prefer the offer price when
+ * one is present; fall back to the original price otherwise.
+ */
+function effectivePlanPrice(plan: {
+  price: number;
+  offerPrice?: number | string | null;
+}): number {
+  if (plan.offerPrice != null && plan.offerPrice !== "") {
+    const parsed = Number(plan.offerPrice);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return plan.price;
+}
 
 const METHOD_OPTIONS: { id: PaymentMethod; label: string }[] = [
   { id: "cash", label: "Cash" },
@@ -47,15 +76,25 @@ export function RecordPaymentModal({
   memberMeta,
   members,
   plans = [],
+  defaultPlanId,
+  presetAmount,
+  presetDays,
   onSave,
   onClose,
 }: RecordPaymentModalProps) {
   const selectorMode = Array.isArray(members) && members.length > 0;
-  const defaultPlan = plans[0] ?? null;
+  const defaultPlan =
+    plans.find((p) => p.id === defaultPlanId) ?? plans[0] ?? null;
+  const initialAmount = defaultPlan
+    ? effectivePlanPrice(defaultPlan)
+    : presetAmount ?? 0;
+  const initialDays = defaultPlan ? defaultPlan.days : presetDays ?? 0;
   const [saving, setSaving] = useState(false);
-  const [planId, setPlanId] = useState(defaultPlan ? defaultPlan.id : CUSTOM_PLAN_ID);
-  const [amount, setAmount] = useState(defaultPlan ? defaultPlan.price : 0);
-  const [days, setDays] = useState(defaultPlan ? defaultPlan.days : 0);
+  const [planId, setPlanId] = useState(
+    defaultPlan ? defaultPlan.id : CUSTOM_PLAN_ID,
+  );
+  const [amount, setAmount] = useState(initialAmount);
+  const [days, setDays] = useState(initialDays);
   const [method, setMethod] = useState<PaymentMethod>("cash");
   const [notes, setNotes] = useState("");
   const [selectedMemberId, setSelectedMemberId] = useState<string>("");
@@ -66,11 +105,17 @@ export function RecordPaymentModal({
     : undefined;
 
   const planOptions = [
-    ...plans.map((plan) => ({
-      id: plan.id,
-      label: plan.name,
-      description: `₹${plan.price.toLocaleString("en-IN")} · ${plan.days} days`,
-    })),
+    ...plans.map((plan) => {
+      const effective = effectivePlanPrice(plan);
+      const hasOffer = effective !== plan.price;
+      return {
+        id: plan.id,
+        label: plan.name,
+        description: hasOffer
+          ? `₹${effective.toLocaleString("en-IN")} (offer) · was ₹${plan.price.toLocaleString("en-IN")} · ${plan.days} days`
+          : `₹${effective.toLocaleString("en-IN")} · ${plan.days} days`,
+      };
+    }),
     {
       id: CUSTOM_PLAN_ID,
       label: "Custom plan",
@@ -96,7 +141,7 @@ export function RecordPaymentModal({
     }
     const plan = plans.find((p) => p.id === key);
     if (plan) {
-      setAmount(plan.price);
+      setAmount(effectivePlanPrice(plan));
       setDays(plan.days);
     }
   };
@@ -170,11 +215,14 @@ export function RecordPaymentModal({
             </span>
           ) : null}
           {selectedMember ? (
-            <div className="user-info-banner" style={{ marginTop: 14 }}>
+            <div
+              className="user-info-banner w-full min-w-0"
+              style={{ marginTop: 14 }}
+            >
               <UserRound size={22} />
-              <div>
-                <div className="ui-name">{displayName}</div>
-                <div className="ui-id">
+              <div className="min-w-0">
+                <div className="ui-name break-words">{displayName}</div>
+                <div className="ui-id break-words">
                   ID: {displayId} · {displayMeta}
                 </div>
               </div>
@@ -182,11 +230,11 @@ export function RecordPaymentModal({
           ) : null}
         </>
       ) : (
-        <div className="user-info-banner">
+        <div className="user-info-banner w-full min-w-0">
           <UserRound size={22} />
-          <div>
-            <div className="ui-name">{displayName}</div>
-            <div className="ui-id">
+          <div className="min-w-0">
+            <div className="ui-name break-words">{displayName}</div>
+            <div className="ui-id break-words">
               ID: {displayId} · {displayMeta}
             </div>
           </div>

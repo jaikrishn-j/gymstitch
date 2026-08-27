@@ -347,6 +347,12 @@ body.body-drawer-open .drawer-scrim {
   background: var(--color-surface);
   border-color: transparent;
 }
+.nav-item.danger {
+  color: var(--color-danger);
+}
+.nav-item.danger:hover {
+  background: var(--color-danger-soft);
+}
 .sidebar-foot {
   margin-top: auto;
   padding-top: 14px;
@@ -708,6 +714,10 @@ textarea.input:focus {
 }
 .table-responsive {
   min-width: 720px;
+}
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ============================================================
@@ -2200,8 +2210,6 @@ textarea.input:focus {
    ============================================================ */
 .role-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
   margin-bottom: 16px;
 }
 .role-card {
@@ -2926,6 +2934,14 @@ textarea.input:focus {
 .modal-size-xl {
   max-width: 960px;
 }
+/* Long modals (e.g. AddMember) scroll internally, and the vertical
+   scrollbar on the right edge eats into the dialog padding, leaving
+   the content flush against the right side. Reserve a stable scrollbar
+   gutter so the right padding stays consistent with the left. */
+.modal-body-scroll {
+  scrollbar-gutter: stable;
+  overflow-x: clip;
+}
 
 /* ============================================================
    Modal content helpers
@@ -3260,5 +3276,446 @@ textarea.input:focus {
   .grid-2,
   .grid-half {
     grid-template-columns: 1fr;
+  }
+
+  .modal__container {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+    padding: 12px !important;
+    flex: none !important;
+  }
+  .modal__dialog,
+  .modal-dialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 24px) !important;
+    overflow-y: auto !important;
+  }
+  .modal-size-sm,
+  .modal-size-md,
+  .modal-size-lg,
+  .modal-size-xl {
+    max-width: 100% !important;
+    margin: 0 !important;
+  }
+
+  .content {
+    padding: 16px 12px 40px;
+  }
+
+  .page-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .page-head .actions {
+    width: 100%;
+  }
+  .page-head .actions button {
+    width: 100%;
+  }
+  .page-head h2 {
+    font-size: 22px;
+  }
+
+  .search {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-card {
+    padding: 14px;
+  }
+  .stat-num {
+    font-size: 20px;
+  }
+
+  .table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 10px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 12px;
+    gap: 4px;
+  }
+  .pagination button {
+    min-width: 30px;
+    height: 30px;
+    font-size: 12px;
+  }
+
+  .donut-wrap {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .pending-row {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .pending-row .pending-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .calc-summary {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  .modal-footer-responsive {
+    flex-wrap: wrap;
+    gap: 8px !important;
+  }
+  .modal-footer-responsive button {
+    flex: 1 1 auto;
+    min-width: 100px;
+  }
+}
+
+/* Override HeroUI sm:w-fit on small screens */
+@media (max-width: 640px) {
+  .modal__container {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+    padding: 8px !important;
+  }
+  .modal__dialog,
+  .modal-dialog {
+    max-height: calc(100vh - 32px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+
+/* ============================================================
+   Payments page - mobile responsiveness
+   Desktop is intentionally untouched.
+   ============================================================ */
+
+@media (max-width: 767px) {
+  /* ----------------------------------------------------------
+     Payment layout
+     ---------------------------------------------------------- */
+
+  .payments-grid {
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .payments-table-card,
+  .payment-source-card {
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* ----------------------------------------------------------
+     Payment table
+     ---------------------------------------------------------- */
+
+  .payments-table-scroll {
+    overflow: visible;
+    width: 100%;
+  }
+
+  .payments-table {
+    min-width: 0;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .payments-table thead {
+    display: none;
+  }
+
+  .payments-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .payments-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    width: 100%;
+    box-sizing: border-box;
+
+    padding: 14px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+
+    background: var(--color-surface);
+  }
+
+  .payments-table tbody tr:hover {
+    background: var(--color-surface);
+  }
+
+  .payments-table tbody td {
+    display: block;
+    min-width: 0;
+
+    padding: 0;
+    border: 0;
+
+    text-align: left;
+
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Mobile labels */
+
+  .payments-table tbody td[data-label]::before {
+    content: attr(data-label);
+
+    display: block;
+
+    margin-bottom: 3px;
+
+    font-size: 10px;
+    line-height: 1.3;
+    font-weight: 600;
+
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+
+    color: var(--color-muted);
+  }
+
+  /* Member */
+
+  .payments-table tbody td[data-label="Member"] {
+    grid-column: 1 / -1;
+
+    font-size: 14px;
+    font-weight: 550;
+  }
+
+  /* Email */
+
+  .payments-table tbody td[data-label="Email"] {
+    grid-column: 1 / -1;
+
+    font-size: 13px;
+  }
+
+  /* Plan */
+
+  .payments-table tbody td[data-label="Plan"] {
+    grid-column: 1 / -1;
+  }
+
+  /* Method */
+
+  .payments-table tbody td[data-label="Method"] {
+    grid-column: 1 / 2;
+  }
+
+  /* Amount */
+
+  .payments-table tbody td[data-label="Amount"] {
+    grid-column: 2 / 3;
+
+    text-align: right;
+  }
+
+  .payments-table tbody td[data-label="Amount"]::before {
+    text-align: right;
+  }
+
+  /* Date */
+
+  .payments-table tbody td[data-label="Date"] {
+    grid-column: 1 / 2;
+
+    text-align: left;
+  }
+
+  /* Status */
+
+  .payments-table tbody td[data-label="Status"] {
+    grid-column: 2 / 3;
+
+    text-align: right;
+  }
+
+  .payments-table tbody td[data-label="Status"]::before {
+    text-align: right;
+  }
+
+  /* Actions */
+
+  .payments-table tbody td[data-label="Actions"] {
+    grid-column: 1 / -1;
+
+    display: flex;
+    justify-content: flex-end;
+
+    padding-top: 4px;
+
+    border-top: 1px solid var(--color-border);
+  }
+
+  .payments-table tbody td[data-label="Actions"]::before {
+    display: none;
+  }
+
+  /* ----------------------------------------------------------
+     Payment source split
+     ---------------------------------------------------------- */
+
+  .payment-source-card {
+    padding: 16px !important;
+    overflow: hidden;
+  }
+
+  .payment-source-item {
+    min-width: 0;
+  }
+
+  .payment-source-card .progress {
+    width: 100%;
+    min-width: 0;
+  }
+
+  /* ----------------------------------------------------------
+     Donut + legend
+     ---------------------------------------------------------- */
+
+  .payment-donut-wrap {
+    width: 100%;
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 20px !important;
+  }
+
+  .payment-donut-wrap .donut {
+    flex: 0 0 120px;
+  }
+
+  .payment-legend {
+    min-width: 0;
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .payment-legend .li {
+    min-width: 0;
+  }
+}
+
+
+/* ============================================================
+   Very small phones
+   ============================================================ */
+
+@media (max-width: 400px) {
+  .payments-table tbody {
+    padding: 8px;
+  }
+
+  .payments-table tbody tr {
+    grid-template-columns: 1fr;
+    padding: 12px;
+  }
+
+  .payments-table tbody td[data-label="Method"],
+  .payments-table tbody td[data-label="Amount"],
+  .payments-table tbody td[data-label="Date"],
+  .payments-table tbody td[data-label="Status"] {
+    grid-column: 1 / -1;
+  }
+
+  .payments-table tbody td[data-label="Amount"],
+  .payments-table tbody td[data-label="Status"] {
+    text-align: left;
+  }
+
+  .payments-table tbody td[data-label="Amount"]::before,
+  .payments-table tbody td[data-label="Status"]::before {
+    text-align: left;
+  }
+
+  .payments-table tbody td[data-label="Actions"] {
+    justify-content: flex-start;
+  }
+
+  .payment-donut-wrap {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .payment-legend {
+    width: 100%;
+  }
+}
+
+/* ============================================================
+   Modals - mobile responsiveness
+   Desktop is intentionally untouched.
+   ============================================================ */
+
+@media (max-width: 640px) {
+  /* Member summary banner (Record payment): let text shrink so
+     long IDs / e-mails / phones never overflow the modal width. */
+  .user-info-banner {
+    align-items: flex-start;
+    min-width: 0;
+  }
+  .user-info-banner > div {
+    min-width: 0;
+  }
+  .user-info-banner .ui-name,
+  .user-info-banner .ui-id {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Plan-extension preview wraps long descriptive amounts. */
+  .calc-summary {
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .calc-summary b {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    text-align: left;
+  }
+
+  /* Payment-method segmented control fills the field. */
+  .field .seg {
+    width: 100%;
+  }
+}
+
+@media (max-width: 400px) {
+  .user-info-banner {
+    padding: 12px;
   }
 }

@@ -164,7 +164,7 @@ export function CompleteProfileModal({
                 />
               </div>
             </div>
-            <div className="m-foot" style={{ display: "flex", justifyContent: "space-between" }}>
+            <div className="m-foot flex flex-wrap items-center justify-between gap-2">
               <Button variant="ghost" onPress={onLogout} isDisabled={saving}>
                 Log out
               </Button>

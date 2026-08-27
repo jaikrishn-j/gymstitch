@@ -33,7 +33,7 @@ export function ModalShell({
       </Modal.Header>
       <Modal.Body className={cn("space-y-4", className)}>{children}</Modal.Body>
       {footer ? (
-        <Modal.Footer className="flex justify-end gap-3">
+        <Modal.Footer className="modal-footer-responsive flex justify-end gap-3">
           {footer}
         </Modal.Footer>
       ) : null}

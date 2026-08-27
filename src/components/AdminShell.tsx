@@ -5,6 +5,7 @@ import {
   CreditCard,
   Dumbbell,
   LayoutDashboard,
+  LogOut,
   Megaphone,
   Menu,
   ReceiptText,
@@ -13,6 +14,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
+import { AdminModal } from "./modals/AdminModal";
 
 export type AdminNavKey =
   | "dashboard"
@@ -56,7 +58,9 @@ export type AdminShellProps = {
   status?: { mode: "online" | "offline"; label: string };
   topbarActions?: ReactNode;
   sidebarFoot?: ReactNode;
+  pendingCount?: number;
   onNotifications?: () => void;
+  onLogout?: () => void;
   children: ReactNode;
 };
 
@@ -66,10 +70,13 @@ export function AdminShell({
   status,
   topbarActions,
   sidebarFoot,
+  pendingCount = 0,
   onNotifications,
+  onLogout,
   children,
 }: AdminShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle("body-drawer-open", drawerOpen);
@@ -136,26 +143,67 @@ export function AdminShell({
             >
               <span style={{ position: "relative" }}>
                 <Bell size={18} />
-                <i
-                  style={{
-                    position: "absolute",
-                    top: -2,
-                    right: -3,
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: "var(--color-accent)",
-                  }}
-                />
+                {pendingCount > 0 ? (
+                  <i
+                    style={{
+                      position: "absolute",
+                      top: -4,
+                      right: -5,
+                      minWidth: 15,
+                      height: 15,
+                      borderRadius: "50%",
+                      background: "var(--color-accent)",
+                      color: "#fff",
+                      fontSize: 9,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "0 3px",
+                    }}
+                  >
+                    {pendingCount > 99 ? "99+" : pendingCount}
+                  </i>
+                ) : null}
               </span>
             </button>
-            <button type="button" className="icon-btn" aria-label="Account">
+            <button type="button" className="icon-btn" aria-label="Account" onClick={() => setShowAccount(true)}>
               <User size={18} />
             </button>
           </div>
         </header>
         <div className="content">{children}</div>
       </div>
+
+      <AdminModal
+        open={showAccount}
+        onClose={() => setShowAccount(false)}
+        title="Admin account"
+        subtitle="Logged in as Administrator"
+      >
+        <div className="flex flex-col gap-2.5">
+          <a href="/admin/settings" className="nav-item" onClick={() => setShowAccount(false)}>
+            <Settings size={15} />
+            Settings
+          </a>
+          <a href="/" className="nav-item" onClick={() => setShowAccount(false)}>
+            View public landing
+          </a>
+          {onLogout && (
+            <button
+              type="button"
+              className="nav-item danger"
+              onClick={() => {
+                setShowAccount(false);
+                onLogout();
+              }}
+            >
+              <LogOut size={15} />
+              Log out
+            </button>
+          )}
+        </div>
+      </AdminModal>
     </div>
   );
 }

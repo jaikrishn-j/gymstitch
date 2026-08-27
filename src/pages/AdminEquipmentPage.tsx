@@ -71,6 +71,7 @@ export type AdminEquipmentPageProps = {
   onUpdateEquipment: (id: string, data: EquipmentData) => Promise<void>;
   onDeleteEquipment: (id: string) => Promise<void>;
   onToggleStatus: (id: string) => void;
+  onLogout?: () => void;
 };
 
 export function AdminEquipmentPage({
@@ -80,6 +81,7 @@ export function AdminEquipmentPage({
   onUpdateEquipment,
   onDeleteEquipment,
   onToggleStatus,
+  onLogout,
 }: AdminEquipmentPageProps) {
   const [view, setView] = useState<"grid" | "table">("grid");
   const [chip, setChip] = useState("all");
@@ -150,7 +152,7 @@ export function AdminEquipmentPage({
       : items.filter((i) => i.category.toLowerCase() === chip);
 
   return (
-    <AdminShell title="Equipment Inventory" active="equipment" status={{ mode: "online", label: "Online" }}>
+    <AdminShell title="Equipment Inventory" active="equipment" status={{ mode: "online", label: "Online" }} onLogout={onLogout}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Facility &amp; Assets</div>

@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { signOut } from "firebase/auth";
 import { toast } from "@heroui/react";
 import {
   collection,
@@ -7,7 +8,7 @@ import {
   updateDoc,
   doc,
 } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { db, auth } from "../../lib/firebase";
 import { CACHE_KEYS, TTL } from "../../lib/cache";
 import { useCachedData } from "../../lib/useCachedData";
 import { requirePermission } from "../../auth/guard";
@@ -24,6 +25,7 @@ export type PlanRow = {
   features: string[];
   status: "active" | "paused";
   featured: boolean;
+  requireApproval: boolean;
 };
 
 export const Route = createFileRoute("/admin/plans")({
@@ -47,16 +49,24 @@ const fetchPlans = async (): Promise<PlanRow[]> => {
       features: data.features ?? [],
       status: data.status ?? "active",
       featured: data.featured ?? false,
+      requireApproval: data.requireApproval ?? false,
     };
   });
 };
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const plans = useCachedData<PlanRow[]>({
     key: CACHE_KEYS.plans,
     ttl: TTL.plans,
     fetch: fetchPlans,
   });
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast.success("Signed out successfully.");
+    navigate({ to: "/login" });
+  };
 
   const handleSync = () => {
     void plans.refetch();
@@ -126,6 +136,7 @@ function RouteComponent() {
       onNewPlan={handleNewPlan}
       onUpdatePlan={handleUpdatePlan}
       onTogglePlan={handleTogglePlan}
+      onLogout={handleLogout}
     />
   );
 }

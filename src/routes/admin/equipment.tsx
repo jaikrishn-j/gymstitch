@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { signOut } from "firebase/auth";
 import { toast } from "@heroui/react";
 import {
   addDoc,
@@ -15,7 +16,7 @@ import {
   ref,
   uploadBytes,
 } from "firebase/storage";
-import { db, storage } from "../../lib/firebase";
+import { db, storage, auth } from "../../lib/firebase";
 import { requirePermission } from "../../auth/guard";
 import { AdminEquipmentPage } from "../../pages/AdminEquipmentPage";
 import type { EquipmentRow } from "../../pages/AdminEquipmentPage";
@@ -76,8 +77,15 @@ function toRow(raw: RawEquipment): EquipmentRow {
 }
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const [items, setItems] = useState<EquipmentRow[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast.success("Signed out successfully.");
+    navigate({ to: "/login" });
+  };
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -223,6 +231,7 @@ function RouteComponent() {
       onUpdateEquipment={handleUpdateEquipment}
       onDeleteEquipment={handleDeleteEquipment}
       onToggleStatus={handleToggleStatus}
+      onLogout={handleLogout}
     />
   );
 }

@@ -17,6 +17,7 @@ export type AdminPlansPageProps = {
   onNewPlan: (data: PlanData) => Promise<void>;
   onUpdatePlan: (id: string, data: PlanData) => Promise<void>;
   onTogglePlan: (id: string) => void;
+  onLogout?: () => void;
 };
 
 export function AdminPlansPage({
@@ -28,6 +29,7 @@ export function AdminPlansPage({
   onNewPlan,
   onUpdatePlan,
   onTogglePlan,
+  onLogout,
 }: AdminPlansPageProps) {
   const [view, setView] = useState<"grid" | "table">("grid");
   const { open } = useModal();
@@ -63,6 +65,12 @@ export function AdminPlansPage({
 
   const formatPrice = (price: number) => `₹${price.toLocaleString("en-IN")}`;
 
+  const hasOffer = (p: PlanRow) =>
+    p.offerPrice != null && p.offerPrice !== "" && Number(p.offerPrice) > 0;
+
+  const displayPrice = (p: PlanRow) =>
+    hasOffer(p) ? Number(p.offerPrice) : p.price;
+
   const formatBill = (days: number) => {
     if (days >= 365) return `per year · ${days} days billing`;
     if (days >= 90) return `per quarter · ${days} days billing`;
@@ -70,7 +78,7 @@ export function AdminPlansPage({
   };
 
   return (
-    <AdminShell title="Plans & Pricing" active="plans" status={{ mode: "online", label: "Online" }}>
+    <AdminShell title="Plans & Pricing" active="plans" status={{ mode: "online", label: "Online" }} onLogout={onLogout}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Monetization</div>
@@ -144,7 +152,7 @@ export function AdminPlansPage({
       ) : view === "grid" ? (
         <div className="plan-grid">
           {plans.map((p) => (
-              <div className={cn("card plan-card2 card-hover reveal", p.featured && "featured", p.status === "paused" && "plan-paused")}>
+              <div key={p.id} className={cn("card plan-card2 card-hover reveal", p.featured && "featured", p.status === "paused" && "plan-paused")}>
                 {p.featured ? <div className="feature-tag">Most popular</div> : null}
 
               <div className="p-name">
@@ -154,11 +162,16 @@ export function AdminPlansPage({
                     Paused
                   </Chip>
                 )}
+                {p.requireApproval && (
+                  <Chip color="warning" variant="soft" size="sm" className="approval-badge">
+                    Approval required
+                  </Chip>
+                )}
               </div>
               <div className="p-desc">{p.description}</div>
               <div className="p-price">
-                {p.offerPrice ? <s>{formatPrice(p.price)}</s> : null}
-                <b>{formatPrice(p.offerPrice ? Number(p.offerPrice) : p.price)}</b>
+                {hasOffer(p) ? <s>{formatPrice(p.price)}</s> : null}
+                <b>{formatPrice(displayPrice(p))}</b>
               </div>
               <div className="p-bill">{formatBill(p.days)}</div>
               <ul className="p-feats">
@@ -202,6 +215,7 @@ export function AdminPlansPage({
                 <th>Billing</th>
                 <th>Features</th>
                 <th>Status</th>
+                <th>Approval</th>
                 <th className="td-right">Actions</th>
               </tr>
             </thead>
@@ -212,7 +226,16 @@ export function AdminPlansPage({
                     <b>{row.name}</b>
                   </td>
                   <td data-label="Price" className="amt">
-                    {formatPrice(row.price)}
+                    {hasOffer(row) ? (
+                      <>
+                        <s className="mr-1 opacity-60" style={{ color: "var(--muted)" }}>
+                          {formatPrice(row.price)}
+                        </s>
+                        <b>{formatPrice(displayPrice(row))}</b>
+                      </>
+                    ) : (
+                      formatPrice(row.price)
+                    )}
                   </td>
                   <td data-label="Billing">{row.days} days</td>
                   <td data-label="Features">{(row.features ?? []).length}</td>
@@ -224,6 +247,17 @@ export function AdminPlansPage({
                     >
                       {row.status === "active" ? "Active" : "Paused"}
                     </Chip>
+                  </td>
+                  <td data-label="Approval">
+                    {row.requireApproval ? (
+                      <Chip color="warning" variant="soft" size="sm">
+                        Required
+                      </Chip>
+                    ) : (
+                      <Chip color="success" variant="soft" size="sm">
+                        Auto-approve
+                      </Chip>
+                    )}
                   </td>
                   <td className="td-right thide">
                     <Button variant="ghost" size="sm" onPress={() => openPlanModal(row)}>

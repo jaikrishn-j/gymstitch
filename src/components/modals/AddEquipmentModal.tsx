@@ -167,7 +167,7 @@ export function AddEquipmentModal({
           <span className="block text-[13px] font-semibold text-fg">
             Quantity
           </span>
-          <div className="stepper mt-2">
+          <div className="stepper mt-2 w-full">
             <button
               type="button"
               onClick={() => stepQuantity(-1)}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { CalendarCheck, CreditCard, Megaphone, ShoppingCart, UserPlus, Wrench } from "lucide-react";
 import {
@@ -10,21 +10,37 @@ import {
 import { AdminModal } from "../components/modals/AdminModal";
 import { useModal } from "../components/providers/ModalProvider";
 import { AddMemberModal } from "../components/modals/AddMemberModal";
-import type { AddMemberData } from "../components/modals/AddMemberModal";
+import type { AddMemberData, PlanOption } from "../components/modals/AddMemberModal";
 import { RecordPaymentModal } from "../components/modals/RecordPaymentModal";
-import type { PaymentData } from "../components/modals/RecordPaymentModal";
+import type { PaymentData, PaymentMember } from "../components/modals/RecordPaymentModal";
 import { NewPlanModal } from "../components/modals/NewPlanModal";
 import type { PlanData } from "../components/modals/NewPlanModal";
 import { AddEquipmentModal } from "../components/modals/AddEquipmentModal";
 import type { EquipmentData } from "../components/modals/AddEquipmentModal";
+
+export type PendingRequest = {
+  id: string;
+  memberId: string;
+  memberName: string;
+  planId: string;
+  planName: string;
+  amount: number;
+  daysAdded: number;
+};
 
 export type AdminDashboardPageProps = {
   onAddMember: (data: AddMemberData) => Promise<void>;
   onRecordPayment: (data: PaymentData) => Promise<void>;
   onNewPlan: (data: PlanData) => Promise<void>;
   onAddEquipment: (data: EquipmentData) => Promise<void>;
-  onApproveRequest: (member: string) => void;
-  onRejectRequest: (member: string) => void;
+  plans?: PlanOption[];
+  members?: PaymentMember[];
+  pendingRequests: PendingRequest[];
+  onApproveRequest: (
+    request: PendingRequest,
+    data: PaymentData,
+  ) => Promise<void>;
+  onRejectRequest: (request: PendingRequest) => void;
   onLogout: () => void;
 };
 
@@ -38,40 +54,60 @@ const REV_BARS = [
   { label: "Aug", val: "4.2L", w: 96, hi: true },
 ];
 
-const REQUESTS = [
-  { initials: "AS", name: "Aarav Singh", plan: "Annual Unlimited", price: "₹5,999" },
-  { initials: "PK", name: "Priya Kumar", plan: "Quarterly Pro", price: "₹2,499" },
-  { initials: "RM", name: "Rahul Mehta", plan: "Monthly Starter", price: "₹899" },
-];
-
 export function AdminDashboardPage({
   onAddMember,
   onRecordPayment,
   onNewPlan,
   onAddEquipment,
+  plans = [],
+  members = [],
+  pendingRequests,
   onApproveRequest,
   onRejectRequest,
   onLogout,
 }: AdminDashboardPageProps) {
   const [period, setPeriod] = useState<"6M" | "1Y">("6M");
   const [showNotif, setShowNotif] = useState(false);
-  const [showAccount, setShowAccount] = useState(false);
   const { open } = useModal();
+  const approveModalCloseRef = useRef<(() => void) | null>(null);
 
   const openMemberModal = () => {
     const close = open(
-      <AddMemberModal onSave={onAddMember} onClose={() => close()} />,
+      <AddMemberModal onSave={onAddMember} plans={plans} onClose={() => close()} />,
       "lg",
     );
   };
   const openPaymentModal = () => {
     const close = open(
       <RecordPaymentModal
-        memberName="Aarav Singh"
-        memberId="MBR-1001"
-        memberMeta="aarav@gmail.com · +91 98765 43210"
+        members={members}
+        plans={plans}
         onSave={onRecordPayment}
         onClose={() => close()}
+      />,
+      "md",
+    );
+  };
+
+  /** Opens the record-payment modal pre-filled with the member's requested plan. */
+  const openApproveModal = (request: PendingRequest) => {
+    const closeModal = () => {
+      approveModalCloseRef.current?.();
+    };
+
+    approveModalCloseRef.current = open(
+      <RecordPaymentModal
+        memberName={request.memberName}
+        memberId={request.memberId}
+        plans={plans}
+        defaultPlanId={request.planId}
+        presetAmount={request.amount}
+        presetDays={request.daysAdded}
+        onSave={async (data) => {
+          await onApproveRequest(request, data);
+          closeModal();
+        }}
+        onClose={closeModal}
       />,
       "md",
     );
@@ -99,7 +135,9 @@ export function AdminDashboardPage({
           View overview
         </a>
       }
+      pendingCount={pendingRequests.length}
       onNotifications={() => setShowNotif(true)}
+      onLogout={onLogout}
     >
       <div className="greeting">
         <div>
@@ -128,16 +166,20 @@ export function AdminDashboardPage({
         <div className="card stat-card card-hover reveal">
           <div className="stat-label">Pending requests</div>
           <div className="stat-num" style={{ color: "var(--color-accent)" }}>
-            3
+            {pendingRequests.length}
           </div>
-          <button
-            type="button"
-            className="delta down"
-            style={{ color: "var(--color-accent)", border: 0, background: "none", cursor: "pointer" }}
-            onClick={() => setShowNotif(true)}
-          >
-            Review requests →
-          </button>
+          {pendingRequests.length > 0 ? (
+            <button
+              type="button"
+              className="delta down"
+              style={{ color: "var(--color-accent)", border: 0, background: "none", cursor: "pointer" }}
+              onClick={() => setShowNotif(true)}
+            >
+              Review requests →
+            </button>
+          ) : (
+            <div className="delta">No pending requests</div>
+          )}
         </div>
       </div>
 
@@ -354,85 +396,58 @@ export function AdminDashboardPage({
         open={showNotif}
         onClose={() => setShowNotif(false)}
         title="Pending plan requests"
-        subtitle="3 member plan enrollment requests require approval"
+        subtitle={`${pendingRequests.length} member plan enrollment request${pendingRequests.length !== 1 ? "s" : ""} require approval`}
       >
-        <div className="flex flex-col gap-3">
-          {REQUESTS.map((r) => (
-            <div
-              key={r.name}
-              className="user-info-banner"
-              style={{
-                justifyContent: "space-between",
-                background: "var(--color-surface)",
-                border: "1px solid var(--color-border)",
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <Initials tone="accent">{r.initials}</Initials>
-                <div>
-                  <div className="ui-name">{r.name}</div>
-                  <div className="muted small">
-                    Requested <b className="text-accent">{r.plan}</b> · {r.price}
+        {pendingRequests.length === 0 ? (
+          <div className="py-8 text-center text-sm text-[var(--color-muted)]">
+            No pending requests at this time.
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {pendingRequests.map((r) => (
+              <div
+                key={r.id}
+                className="user-info-banner"
+                style={{
+                  justifyContent: "space-between",
+                  background: "var(--color-surface)",
+                  border: "1px solid var(--color-border)",
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <Initials tone="accent">{r.memberName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()}</Initials>
+                  <div>
+                    <div className="ui-name">{r.memberName}</div>
+                    <div className="muted small">
+                      Requested <b className="text-accent">{r.planName}</b> · ₹{r.amount.toLocaleString("en-IN")}
+                    </div>
                   </div>
                 </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onPress={() => {
+                      openApproveModal(r);
+                      setShowNotif(false);
+                    }}
+                  >
+                    Approve &amp; Record
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => {
+                      onRejectRequest(r);
+                      setShowNotif(false);
+                    }}
+                  >
+                    Reject
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onPress={() => {
-                    onApproveRequest(r.name);
-                    setShowNotif(false);
-                  }}
-                >
-                  Approve & Record
-                </Button>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onPress={() => {
-                    onRejectRequest(r.name);
-                    setShowNotif(false);
-                  }}
-                >
-                  Reject
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </AdminModal>
-
-      <AdminModal
-        open={showAccount}
-        onClose={() => setShowAccount(false)}
-        title="Admin account"
-        subtitle="Logged in as Administrator"
-      >
-        <div className="user-info-banner">
-          <Initials tone="accent">RA</Initials>
-          <div>
-            <div className="ui-name">Rohan Agrawal</div>
-            <div className="ui-id">rohan@gymstitch.in</div>
+            ))}
           </div>
-        </div>
-        <div className="flex flex-col gap-2.5">
-          <Button variant="secondary" fullWidth onPress={() => setShowAccount(false)}>
-            Settings &amp; Gateway
-          </Button>
-          <Button variant="secondary" fullWidth onPress={() => setShowAccount(false)}>
-            View public landing
-          </Button>
-          <Button
-            variant="ghost"
-            fullWidth
-            onPress={() => {
-              setShowAccount(false);
-              onLogout();
-            }}
-          >
-            Log out
-          </Button>
-        </div>
+        )}
       </AdminModal>
     </AdminShell>
   );

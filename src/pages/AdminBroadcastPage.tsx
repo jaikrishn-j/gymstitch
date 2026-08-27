@@ -16,11 +16,12 @@ const HISTORY = [
 
 export type AdminBroadcastPageProps = {
   onSend: (data: { title: string; message: string; audience: string }) => void;
+  onLogout?: () => void;
 };
 
 type SendState = "idle" | "sending" | "sent";
 
-export function AdminBroadcastPage({ onSend }: AdminBroadcastPageProps) {
+export function AdminBroadcastPage({ onSend, onLogout }: AdminBroadcastPageProps) {
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
   const [audience, setAudience] = useState("staff");
@@ -42,7 +43,7 @@ export function AdminBroadcastPage({ onSend }: AdminBroadcastPageProps) {
   };
 
   return (
-    <AdminShell title="Broadcast Center" active="broadcast" status={{ mode: "online", label: "Online" }}>
+    <AdminShell title="Broadcast Center" active="broadcast" status={{ mode: "online", label: "Online" }} onLogout={onLogout}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Communications</div>

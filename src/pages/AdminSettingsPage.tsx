@@ -23,6 +23,7 @@ export type AdminSettingsPageProps = {
   onSave: (settings: GymSettings) => void;
   onDiscard: () => void;
   onTestConnection: () => void;
+  onLogout?: () => void;
 };
 
 export function AdminSettingsPage({
@@ -30,6 +31,7 @@ export function AdminSettingsPage({
   onSave,
   onDiscard,
   onTestConnection,
+  onLogout,
 }: AdminSettingsPageProps) {
   const [gymName, setGymName] = useState(initial?.gymName ?? "GymStitch Elite Fitness");
   const [supportEmail, setSupportEmail] = useState(initial?.supportEmail ?? "support@gymstitch.com");
@@ -91,7 +93,7 @@ export function AdminSettingsPage({
   };
 
   return (
-    <AdminShell title="Settings & Configuration" active="settings" status={{ mode: "online", label: "Online" }}>
+    <AdminShell title="Settings & Configuration" active="settings" status={{ mode: "online", label: "Online" }} onLogout={onLogout}>
       <div className="page-head">
         <div>
           <div className="eyebrow">Platform Administration</div>

@@ -4,6 +4,7 @@ import { signOut } from "firebase/auth";
 import { toast } from "@heroui/react";
 import {
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -22,6 +23,7 @@ import type {
   MemberPlan,
   MemberPaymentRow,
   MemberAttendanceRow,
+  MemberPendingRequest,
 } from "../pages/MemberDashboardPage";
 import { CompleteProfileModal } from "../components/modals/CompleteProfileModal";
 import type { ProfileData } from "../components/modals/CompleteProfileModal";
@@ -137,13 +139,21 @@ const fetchActivePlans = async (): Promise<MemberPlan[]> => {
   const snap = await getDocs(q);
   return snap.docs.map((d) => {
     const data = d.data();
+    // Show the offer price when present, otherwise the original price.
+    const offer = Number(data.offerPrice);
+    const effective =
+      data.offerPrice != null && Number.isFinite(offer) && offer > 0
+        ? offer
+        : (data.price as number);
     return {
       id: d.id,
       name: data.name,
-      meta: `${data.days} days · ₹${(data.price as number).toLocaleString("en-IN")}`,
+      meta: `${data.days} days · ₹${effective.toLocaleString("en-IN")}`,
       price: data.price,
+      offerPrice: data.offerPrice ?? null,
       days: data.days,
       badge: data.featured ? "Popular" : undefined,
+      requireApproval: data.requireApproval ?? false,
     };
   });
 };
@@ -157,6 +167,29 @@ const fetchGymSettings = async () => {
   } catch {
     return { gatewayEnabled: false };
   }
+};
+
+const fetchMemberPendingRequests = async (
+  uid: string,
+): Promise<MemberPendingRequest[]> => {
+  const q = query(
+    collection(db, "payments"),
+    where("memberId", "==", uid),
+    where("status", "==", "pending"),
+    where("method", "==", "pending"),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      planId: data.planId ?? "",
+      planName: data.planName ?? "",
+      amount: data.amount ?? 0,
+      daysAdded: data.daysAdded ?? 0,
+      requestedAt: toISO(data.paidAt) ?? toISO(data.createdAt),
+    } as MemberPendingRequest;
+  });
 };
 
 function RouteComponent() {
@@ -195,6 +228,12 @@ function RouteComponent() {
     key: CACHE_KEYS.gymSettings,
     ttl: TTL.gymSettings,
     fetch: fetchGymSettings,
+  });
+
+  const pendingRequests = useCachedData<MemberPendingRequest[]>({
+    key: `${CACHE_KEYS.payments}.pending.${uid}`,
+    ttl: TTL.payments,
+    fetch: () => fetchMemberPendingRequests(uid),
   });
 
   const profileData = profile.data;
@@ -290,70 +329,87 @@ function RouteComponent() {
 
   const handleBuyPlan = async (plan: MemberPlan) => {
     const gatewayEnabled = gymSettings.data?.gatewayEnabled ?? false;
-    if (gatewayEnabled) {
-      if (!razorpayLoaded) {
-        toast.info("Payment gateway is loading. Please try again.");
-        return;
-      }
-      try {
-        const { data } = await createRazorpayOrder({
-          planId: plan.id,
-          planName: plan.name,
-          amount: plan.price,
-          days: plan.days,
-        });
+    const requiresApproval = plan.requireApproval ?? false;
 
-        const rzp = new window.Razorpay({
-          key: data.keyId,
-          amount: data.amount,
-          currency: data.currency,
-          name: "GymStitch",
-          description: `${plan.name} — ${plan.days} days`,
-          order_id: data.orderId,
-          handler: (_response: Record<string, unknown>) => {
-            toast.success(`Payment for ${plan.name} successful! Your plan is now active.`);
-            void payments.refetch();
-            void profile.refetch();
-          },
-          prefill: {
-            name: profileData?.name || user.name || "",
-            email: user.email || "",
-            contact: profileData?.phone || "",
-          },
-          theme: {
-            color: "#6366f1",
-          },
-          modal: {
-            ondismiss: () => {
-              toast.info("Payment was cancelled.");
-            },
-          },
-        });
+    // If gateway is disabled OR plan requires approval, request approval instead
+    if (!gatewayEnabled || requiresApproval) {
+      return handleRequestApproval(plan);
+    }
 
-        rzp.on("payment.failed", (response: Record<string, unknown>) => {
-          const error = response.error as { description?: string } | undefined;
-          toast(`Payment failed: ${error?.description || "Unknown error"}`, { variant: "danger" });
-        });
-
-        rzp.open();
-      } catch (err) {
-        console.error("Failed to initiate payment:", err);
-        toast("Could not start payment. Please try again.", { variant: "danger" });
-      }
+    // Gateway enabled and plan allows direct payment
+    if (!razorpayLoaded) {
+      toast.info("Payment gateway is loading. Please try again.");
       return;
     }
-    return handleRequestApproval(plan);
+    try {
+      const { data } = await createRazorpayOrder({
+        planId: plan.id,
+        planName: plan.name,
+        amount: plan.price,
+        days: plan.days,
+      });
+
+      const rzp = new window.Razorpay({
+        key: data.keyId,
+        amount: data.amount,
+        currency: data.currency,
+        name: "GymStitch",
+        description: `${plan.name} — ${plan.days} days`,
+        order_id: data.orderId,
+        handler: (_response: Record<string, unknown>) => {
+          toast.success(`Payment for ${plan.name} successful! Your plan is now active.`);
+          void payments.refetch();
+          void profile.refetch();
+        },
+        prefill: {
+          name: profileData?.name || user.name || "",
+          email: user.email || "",
+          contact: profileData?.phone || "",
+        },
+        theme: {
+          color: "#6366f1",
+        },
+        modal: {
+          ondismiss: () => {
+            toast.info("Payment was cancelled.");
+          },
+        },
+      });
+
+      rzp.on("payment.failed", (response: Record<string, unknown>) => {
+        const error = response.error as { description?: string } | undefined;
+        toast(`Payment failed: ${error?.description || "Unknown error"}`, { variant: "danger" });
+      });
+
+      rzp.open();
+    } catch (err) {
+      console.error("Failed to initiate payment:", err);
+      toast("Could not start payment. Please try again.", { variant: "danger" });
+    }
   };
 
   const handleRequestApproval = async (plan: MemberPlan) => {
+    // Only one plan request can be pending at a time.
+    if ((pendingRequests.data ?? []).length > 0) {
+      toast.info(
+        "You already have a plan request awaiting approval. Cancel it before requesting another plan.",
+      );
+      return;
+    }
     try {
+      // Always charge the offer price when one is set, otherwise the original price.
+      const offer = Number(plan.offerPrice);
+      const amount =
+        plan.offerPrice != null && Number.isFinite(offer) && offer > 0
+          ? offer
+          : plan.price;
       const clientId = newClientId("pay");
       await setDoc(doc(db, "payments", clientId), {
         memberId: uid,
         memberName: user.name,
         planId: plan.id,
         planName: plan.name,
-        amount: plan.price,
+        amount,
         daysAdded: plan.days,
         method: "pending",
         notes: "Member-initiated pending approval",
@@ -362,8 +418,22 @@ function RouteComponent() {
       });
       toast.success(`Payment request for ${plan.name} submitted. Awaiting admin approval.`);
       void payments.refetch();
-    } catch {
+      void pendingRequests.refetch();
+    } catch (err) {
+      console.error("Failed to submit payment request:", err);
       toast("Failed to submit payment request.", { variant: "danger" });
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    try {
+      await deleteDoc(doc(db, "payments", requestId));
+      toast.success("Your plan request was cancelled.");
+      void payments.refetch();
+      void pendingRequests.refetch();
+    } catch (err) {
+      console.error("Failed to cancel plan request:", err);
+      toast("Failed to cancel your request.", { variant: "danger" });
     }
   };
 
@@ -399,7 +469,12 @@ function RouteComponent() {
     }
   };
 
-  const loading = profile.loading || payments.loading || attendance.loading || plans.loading;
+  const loading =
+    profile.loading ||
+    payments.loading ||
+    attendance.loading ||
+    plans.loading ||
+    pendingRequests.loading;
 
   if (loading && !profileData) {
     return (
@@ -418,12 +493,14 @@ function RouteComponent() {
         payments={payments.data ?? []}
         attendance={attendance.data ?? []}
         plans={plans.data ?? []}
+        pendingRequests={pendingRequests.data ?? []}
         gatewayEnabled={gymSettings.data?.gatewayEnabled ?? false}
         isProfileComplete={isProfileComplete}
         onLogout={handleLogout}
         onLogWeight={handleLogWeight}
         onBuyPlan={handleBuyPlan}
         onRequestApproval={handleRequestApproval}
+        onCancelRequest={handleCancelRequest}
         onDownloadReceipt={handleDownloadReceipt}
         onMarkMessageRead={handleMarkMessageRead}
         onMarkAllRead={handleMarkAllRead}

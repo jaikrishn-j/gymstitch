@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { signOut } from "firebase/auth";
 import { toast } from "@heroui/react";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { db, auth } from "../../lib/firebase";
 import { CACHE_KEYS, TTL } from "../../lib/cache";
 import { useCachedData } from "../../lib/useCachedData";
 import { AdminTrainersPage } from "../../pages/AdminTrainersPage";
@@ -42,7 +43,14 @@ const fetchStaffList = async (): Promise<StaffRow[]> => {
 };
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const [reset, setReset] = useState<CreateStaffResult & { email: string } | null>(null);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast.success("Signed out successfully.");
+    navigate({ to: "/login" });
+  };
 
   const staff = useCachedData<StaffRow[]>({
     key: CACHE_KEYS.staff,
@@ -119,6 +127,7 @@ function RouteComponent() {
         onUpdateStaff={handleUpdateStaff}
         onResetStaffLink={handleResetStaffLink}
         onDeleteStaff={handleDeleteStaff}
+        onLogout={handleLogout}
       />
       <ResetLinkModal
         open={reset != null}

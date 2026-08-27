@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { signOut } from "firebase/auth";
 import { toast } from "@heroui/react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../../lib/firebase";
+import { collection, doc, getDocs, query, updateDoc, where } from "firebase/firestore";
+import { db, auth } from "../../lib/firebase";
 import { CACHE_KEYS, TTL, capAttendance, capPayments, toDate, toISO } from "../../lib/cache";
 import { useCachedData } from "../../lib/useCachedData";
 import { usePaymentSync } from "../../lib/usePaymentSync";
@@ -82,6 +83,7 @@ const fetchPlansList = async (): Promise<PlanOption[]> => {
       name: data.name,
       price: data.price,
       days: data.days,
+      offerPrice: data.offerPrice ?? null,
     };
   });
 };
@@ -145,8 +147,40 @@ const fetchAttendanceList = async (): Promise<CachedAttendance[]> => {
   return capAttendance(rows);
 };
 
+const fetchPendingPayments = async (): Promise<CachedPayment[]> => {
+  const q = query(
+    collection(db, "payments"),
+    where("status", "==", "pending"),
+    where("method", "==", "pending"),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      memberId: data.memberId,
+      memberName: data.memberName,
+      planId: data.planId,
+      planName: data.planName,
+      amount: data.amount,
+      daysAdded: data.daysAdded,
+      method: data.method,
+      notes: data.notes,
+      paidAt: toISO(data.paidAt) ?? new Date().toISOString(),
+      status: data.status ?? "pending",
+    };
+  });
+};
+
 function RouteComponent() {
+  const navigate = useNavigate();
   const [reset, setReset] = useState<CreateMemberResult & { email: string } | null>(null);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    toast.success("Signed out successfully.");
+    navigate({ to: "/login" });
+  };
 
   const plans = useCachedData<PlanOption[]>({
     key: CACHE_KEYS.plans,
@@ -168,6 +202,11 @@ function RouteComponent() {
     ttl: TTL.attendance,
     fetch: fetchAttendanceList,
   });
+  const pendingPayments = useCachedData<CachedPayment[]>({
+    key: `${CACHE_KEYS.payments}.pending`,
+    ttl: TTL.payments,
+    fetch: fetchPendingPayments,
+  });
 
   const forceRefetchAll = useMemo(
     () => () => {
@@ -176,9 +215,10 @@ function RouteComponent() {
         members.refetch(),
         payments.refetch(),
         attendance.refetch(),
+        pendingPayments.refetch(),
       ]);
     },
-    [plans, members, payments, attendance],
+    [plans, members, payments, attendance, pendingPayments],
   );
 
   const paymentSync = usePaymentSync(({ flushed }) => {
@@ -205,8 +245,13 @@ function RouteComponent() {
     [attendance.data],
   );
 
-  const loading = plans.loading || members.loading || payments.loading || attendance.loading;
-  const syncing = plans.syncing || members.syncing || payments.syncing || attendance.syncing || paymentSync.flushing;
+  const pendingApprovalRows = useMemo(
+    () => (pendingPayments.data ?? []).map((p) => ({ ...p, paidAt: toDate(p.paidAt) ?? new Date() })),
+    [pendingPayments.data],
+  );
+
+  const loading = plans.loading || members.loading || payments.loading || attendance.loading || pendingPayments.loading;
+  const syncing = plans.syncing || members.syncing || payments.syncing || attendance.syncing || pendingPayments.syncing || paymentSync.flushing;
 
   const lastSyncedAt = useMemo(() => {
     const times = [
@@ -214,6 +259,7 @@ function RouteComponent() {
       members.lastSyncedAt,
       payments.lastSyncedAt,
       attendance.lastSyncedAt,
+      pendingPayments.lastSyncedAt,
     ];
     let min: number | null = null;
     for (const t of times) {
@@ -221,7 +267,7 @@ function RouteComponent() {
       min = min == null ? t : Math.min(min, t);
     }
     return min;
-  }, [plans.lastSyncedAt, members.lastSyncedAt, payments.lastSyncedAt, attendance.lastSyncedAt]);
+  }, [plans.lastSyncedAt, members.lastSyncedAt, payments.lastSyncedAt, attendance.lastSyncedAt, pendingPayments.lastSyncedAt]);
 
   const handleSync = async () => {
     await paymentSync.syncNow();
@@ -302,6 +348,60 @@ function RouteComponent() {
       toast.success(
         `Payment of ₹${data.amount.toLocaleString("en-IN")} recorded for ${member.name}.`,
       );
+    }
+  };
+
+  const handleApprovePayment = async (payment: PaymentRow) => {
+    try {
+      await updateDoc(doc(db, "payments", payment.id), {
+        status: "paid",
+        method: "cash",
+        notes: "Approved by admin from members page",
+        paidAt: new Date(),
+      });
+
+      const member = (members.data ?? []).find((m) => m.uid === payment.memberId);
+      const currentExpiry = member?.planExpiresAt
+        ? new Date(member.planExpiresAt as string)
+        : undefined;
+      const hasActivePlan = currentExpiry != null && currentExpiry.getTime() > Date.now();
+      const base = hasActivePlan ? currentExpiry!.getTime() : Date.now();
+      const planExpiresAt = new Date(base + payment.daysAdded * DAY_MS);
+
+      await updateDoc(doc(db, "users", payment.memberId), {
+        planId: payment.planId,
+        planName: payment.planName,
+        planStart: hasActivePlan && member?.planStart
+          ? new Date(member.planStart as string)
+          : new Date(),
+        planExpiresAt,
+      });
+
+      toast.success(
+        `Payment of ₹${payment.amount.toLocaleString("en-IN")} approved for ${payment.memberName}. Plan activated.`,
+      );
+
+      void payments.refetch();
+      void members.refetch();
+      void pendingPayments.refetch();
+    } catch (err) {
+      console.error("Failed to approve payment:", err);
+      toast("Failed to approve payment.", { variant: "danger" });
+    }
+  };
+
+  const handleRejectPayment = async (payment: PaymentRow) => {
+    try {
+      await updateDoc(doc(db, "payments", payment.id), {
+        status: "rejected",
+        notes: "Rejected by admin from members page",
+      });
+
+      toast.info(`Payment request from ${payment.memberName} rejected.`);
+      void pendingPayments.refetch();
+    } catch (err) {
+      console.error("Failed to reject payment:", err);
+      toast("Failed to reject payment.", { variant: "danger" });
     }
   };
 
@@ -388,6 +488,7 @@ const handleUpdateWeight = async (
         plans={plans.data ?? []}
         payments={paymentRows}
         attendance={attendanceRows}
+        pendingApprovals={pendingApprovalRows}
         loading={loading}
         lastSyncedAt={lastSyncedAt}
         pendingCount={paymentSync.pendingCount}
@@ -396,8 +497,11 @@ const handleUpdateWeight = async (
         onSync={handleSync}
         onAddMember={handleAddMember}
         onRecordPayment={handleRecordPayment}
+        onApprovePayment={handleApprovePayment}
+        onRejectPayment={handleRejectPayment}
         onMarkAttendance={handleMarkAttendance}
         onUpdateWeight={handleUpdateWeight}
+        onLogout={handleLogout}
       />
       <ResetLinkModal
         open={reset != null}

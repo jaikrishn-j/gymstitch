@@ -149,7 +149,7 @@ export function EditStaffModal({
         <ShieldCheck size={16} />
         Role selection
       </div>
-      <div className="role-grid">
+      <div className="role-grid grid grid-cols-1 gap-3 sm:grid-cols-2">
         <button
           type="button"
           className={cn("role-card text-left", role === "staff" && "selected")}
@@ -176,7 +176,7 @@ export function EditStaffModal({
         {MODULES.map((module) => (
           <div key={module.key} className="perm-section open">
             <div className="perm-head">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="text-accent">{module.icon}</span>
                 <b>{module.label}</b>
                 <span>{module.hint}</span>
