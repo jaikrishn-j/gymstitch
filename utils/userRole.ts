@@ -1,4 +1,5 @@
 import { UserProfile, UserRole } from "@/types";
+import { PermissionLevel, PermissionModule } from "@/types/permissions";
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import { redirect, RedirectType } from "next/navigation";
 
@@ -29,7 +30,14 @@ export async function checkUserType(
     }
 
     if (!rolesToCheck.includes(userRole)) {
+        console.log("❌ ROLE CHECK FAILED");
+        console.log("userRole:", userRole);
+        console.log("allowedRoles:", rolesToCheck);
+        console.log("noRedirect:", noRedirect);
+
         if (noRedirect) return null;
+        console.log("🚨 ABOUT TO REDIRECT TO /404");
+
         redirect("/404", RedirectType.replace); // Next.js redirect halts execution completely
     }
 
@@ -43,18 +51,18 @@ export async function checkUserType(
     };
 }
 
-export async function redirectByRole(currentPath:string,allowedRoles: UserRole[] = [], noRedirect: boolean = false):Promise<void>{
+export async function redirectByRole(currentPath:string,allowedRoles: UserRole[] = [], noRedirect: boolean = false):Promise<UserProfile | void>{
     const user: UserProfile | null = await checkUserType(allowedRoles,noRedirect)
 
     if(user?.role === UserRole.ADMIN){
         if(currentPath.startsWith("/admin")){
-            return;
+            return user;
         }
         return redirect("/admin/dashboard", RedirectType.replace)
     }
     if(user?.role === UserRole.STAFF){
         if(currentPath.startsWith("/staff")){
-            return;
+            return user;
         }
         return redirect("/staff/dashboard", RedirectType.replace)
     }
@@ -83,13 +91,41 @@ export async function redirectByRole(currentPath:string,allowedRoles: UserRole[]
         const isOnboarding = currentPath.startsWith("/onboarding")
 
         if(!isProfileComplete){
-            if(isOnboarding) return;
+            if(isOnboarding) return user;
             return redirect("/onboarding", RedirectType.replace)
         }
 
         if (currentPath.startsWith("/admin") || currentPath.startsWith("/staff")) {
             return redirect("/dashboard", RedirectType.replace);
         }
-        return
+        return user
     }
+}
+
+export async function checkUserRole(
+    module: PermissionModule,
+    level: PermissionLevel
+):Promise<boolean>{
+    const {userId} = await auth()
+    if(!userId) redirect("/login", RedirectType.replace)
+
+    const client = await clerkClient()
+    const user = await client.users.getUser(userId)
+    const userRole = user.privateMetadata?.role as UserRole
+
+    if(userRole !== UserRole.STAFF){
+        return false
+    }
+
+    const permission = user.privateMetadata?.permission as | {name: string}[] | undefined
+
+    if(!permission){
+        return false
+    }
+
+    const requiredPermission = `${module}:${level}`
+
+    return permission.some(
+        (permission) => permission.name === requiredPermission
+    )
 }

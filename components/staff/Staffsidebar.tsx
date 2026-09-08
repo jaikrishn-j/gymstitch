@@ -16,15 +16,6 @@ import {
 } from "../ui/sidebar";
 
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-
-import {
     ChevronDown,
     Dumbbell,
     User,
@@ -39,12 +30,16 @@ import {
     Building2,
 } from "lucide-react";
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "../ui/collapsible";
 
 import { UserProfile, UserRole } from "@/types";
 import { checkUserType } from "@/utils/userRole";
 import LogoutInfo from "../members/LogoutInfo";
-
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu";
 
 const data = [
     {
@@ -53,11 +48,11 @@ const data = [
         items: [
             {
                 title: "Dashboard",
-                url: "/admin",
+                url: "/staff",
             },
             {
                 title: "Analytics",
-                url: "/admin/analytics",
+                url: "/staff/analytics",
             },
         ],
     },
@@ -68,11 +63,11 @@ const data = [
         items: [
             {
                 title: "Members",
-                url: "/admin/members",
+                url: "/staff/members",
             },
             {
                 title: "Staff",
-                url: "/admin/staff",
+                url: "/staff/staff",
             },
         ],
     },
@@ -83,11 +78,11 @@ const data = [
         items: [
             {
                 title: "Payment",
-                url: "/admin/payment",
+                url: "/staff/payment",
             },
             {
                 title: "Plans",
-                url: "/admin/plans",
+                url: "/staff/plans",
             },
         ],
     },
@@ -98,18 +93,17 @@ const data = [
         items: [
             {
                 title: "Razorpay",
-                url: "/admin/pggateway",
+                url: "/staff/pggateway",
             },
             {
                 title: "Gym Profile",
-                url: "/admin/gym",
+                url: "/staff/gym",
             },
         ],
     },
 ];
 
-const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
-    
+const Staffsidebar = async ({profile}:{profile:UserProfile}) => {
 
     if (!profile) {
         return redirect("/login", RedirectType.replace);
@@ -117,7 +111,7 @@ const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
 
     const fullName =
         `${profile.firstName ?? ""} ${profile.lastname ?? ""}`.trim() ||
-        "Admin";
+        "Staff";
 
     return (
         <Sidebar collapsible="icon">
@@ -235,9 +229,9 @@ const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
                                     <DropdownMenuSeparator />
 
                                     {/* Profile */}
-                                    <DropdownMenuItem >
+                                    <DropdownMenuItem>
                                         <Link
-                                            href="/admin/profile"
+                                            href="/staff/profile"
                                             className="
                                                 flex cursor-pointer
                                                 items-center gap-2
@@ -249,9 +243,9 @@ const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
                                     </DropdownMenuItem>
 
                                     {/* Settings */}
-                                    <DropdownMenuItem >
+                                    <DropdownMenuItem>
                                         <Link
-                                            href="/admin/settings"
+                                            href="/staff/settings"
                                             className="
                                                 flex cursor-pointer
                                                 items-center gap-2
@@ -390,7 +384,7 @@ const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
 
                     <div className="min-w-0">
                         <p className="truncate text-xs font-semibold">
-                            Admin Portal
+                            Staff Portal
                         </p>
 
                         <p className="truncate text-[11px] text-muted-foreground">
@@ -404,4 +398,4 @@ const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
     );
 };
 
-export default Adminsidebar;
+export default Staffsidebar;

@@ -1,14 +1,4 @@
 import Adminsidebar from "@/components/admin/Adminsidebar";
-
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-
 import { Separator } from "@/components/ui/separator";
 
 import {
@@ -27,7 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-import { UserRole } from "@/types";
+import { UserProfile, UserRole } from "@/types";
 import { redirectByRole } from "@/utils/userRole";
 
 import { auth, clerkClient } from "@clerk/nextjs/server";
@@ -64,38 +54,26 @@ const Layout = async ({ children }: Props) => {
     /*
      * redirectByRole() verifies authentication and role.
      */
-    const profile = await redirectByRole("/admin", [UserRole.ADMIN]);
+    const user:UserProfile | void = await redirectByRole("/admin", [UserRole.ADMIN]);
 
-    /*
-     * Clerk is used here only for the information
-     * displayed in the topbar.
-     */
-    const { userId } = await auth();
-
-    if (!userId) {
-        return null;
-    }
-
-    const client = await clerkClient();
-    const user = await client.users.getUser(userId);
-
+    if(!user) return null
+    
     const firstName = user.firstName ?? "";
-    const lastName = user.lastName ?? "";
+    const lastName = user.firstName ?? "";
 
     const fullName =
         `${firstName} ${lastName}`.trim() ||
-        user.username ||
-        "Admin";
+        user.role
 
     const email =
-        user.emailAddresses[0]?.emailAddress ?? "";
+        user.email
 
     const imageUrl = user.imageUrl;
 
     return (
         <SidebarProvider>
             {/* SIDEBAR */}
-            <Adminsidebar />
+            <Adminsidebar profile={user}/>
 
             <SidebarInset>
 
