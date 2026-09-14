@@ -41,6 +41,10 @@ export const paymentsTable = pgTable("payments", {
         onDelete: "set null",
     }),
 
+    // NULL for regular plans (use plansTable.durationInDays)
+    // Set for custom/exceptional plans
+    planDurationDays: integer(),
+
     // Actual amount paid
     amount: numeric({ precision: 10, scale: 2 }).notNull(),
 

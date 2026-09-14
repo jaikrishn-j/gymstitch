@@ -1,11 +1,5 @@
-import React from 'react'
+import DashboardContent from "@/components/dashboard/dashboard-content";
 
-type Props = {}
-
-const page = (props: Props) => {
-  return (
-    <div>page</div>
-  )
+export default function AdminDashboardPage() {
+  return <DashboardContent basePath="/admin" />;
 }
-
-export default page

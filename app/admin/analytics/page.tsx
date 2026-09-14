@@ -1,11 +1,5 @@
-import React from 'react'
+import AnalyticsContent from "@/components/dashboard/analytics-content";
 
-type Props = {}
-
-const page = (props: Props) => {
-  return (
-    <div>page</div>
-  )
+export default function AdminAnalyticsPage() {
+  return <AnalyticsContent basePath="/admin" />;
 }
-
-export default page
