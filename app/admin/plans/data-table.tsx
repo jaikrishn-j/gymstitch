@@ -47,7 +47,7 @@ import {
   features,
   type DataTableFeatures,
 } from "./data-table-features"
-import AddMember from "./AddMember"
+import AddPlan from "./AddPlan"
 
 interface DataTableProps<TData extends RowData> {
   columns: ColumnDef<DataTableFeatures, TData>[]
@@ -76,9 +76,6 @@ export function DataTable<TData extends RowData>({
       pageSize: 10,
     })
 
-  const [globalFilter, setGlobalFilter] =
-    React.useState("")
-
   const table = useTable({
     features,
 
@@ -90,7 +87,6 @@ export function DataTable<TData extends RowData>({
     onColumnVisibilityChange: setColumnVisibility,
     onRowSelectionChange: setRowSelection,
     onPaginationChange: setPagination,
-    onGlobalFilterChange: setGlobalFilter,
 
     state: {
       sorting,
@@ -98,7 +94,6 @@ export function DataTable<TData extends RowData>({
       columnVisibility,
       rowSelection,
       pagination,
-      globalFilter,
     },
   })
 
@@ -129,10 +124,21 @@ export function DataTable<TData extends RowData>({
           />
 
           <Input
-            placeholder="Search members..."
-            value={globalFilter ?? ""}
+            placeholder="Search plans..."
+            value={
+              (table
+                .getColumn("name")
+                ?.getFilterValue() as string) ?? ""
+            }
             onChange={(event) => {
-              setGlobalFilter(event.target.value)
+              table
+                .getColumn("name")
+                ?.setFilterValue(event.target.value)
+
+              /*
+               * When searching, always return
+               * to the first page.
+               */
               setPagination((previous) => ({
                 ...previous,
                 pageIndex: 0,
@@ -203,7 +209,7 @@ export function DataTable<TData extends RowData>({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <AddMember />
+          <AddPlan />
         </div>
       </div>
 
@@ -283,7 +289,7 @@ export function DataTable<TData extends RowData>({
 
                       <div>
                         <p className="font-medium">
-                          No members found
+                          No plans found
                         </p>
 
                         <p className="text-sm text-muted-foreground">
@@ -309,7 +315,7 @@ export function DataTable<TData extends RowData>({
         <p className="text-sm text-muted-foreground">
           {selectedRows > 0
             ? `${selectedRows} of ${filteredRows} row(s) selected`
-            : `${filteredRows} member${
+            : `${filteredRows} plan${
                 filteredRows === 1 ? "" : "s"
               }`}
         </p>

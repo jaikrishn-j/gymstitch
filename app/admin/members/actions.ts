@@ -1,80 +1,91 @@
 // app/admin/members/actions.ts
-"use server"
+// Client‑side API wrapper for /api/members
 
-import { clerkClient } from "@clerk/nextjs/server"
-import { revalidatePath } from "next/cache"
-import { BloodGroup, UserRole } from "@/types"
+import { Member } from "./columns";
 
-function generateTempPassword(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789"
-  const symbols = "!@#$%^&*"
-  let password = ""
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  password += symbols.charAt(Math.floor(Math.random() * symbols.length))
-  password += "1"
-  return password
-}
-
-export async function createMember(formData: FormData) {
-  const get = (key: string) => formData.get(key)?.toString() || ""
-
-  const name = get("name")
-  const email = get("email")
-
-  if (!name || !email) {
-    throw new Error("Name and email are required")
-  }
-
-  const clerk = await clerkClient()
-
-  const user = await clerk.users.createUser({
-    emailAddress: [email],
-    password: generateTempPassword(),
-    firstName: name.split(" ")[0],
-    lastName: name.split(" ").slice(1).join(" ") || undefined,
-    skipPasswordChecks: true,
-    privateMetadata: {
-      role: UserRole.MEMBER,
-      phone: get("phone"),
-      whatsapp: get("whatsapp"),
-      residentialAddress: {
-        street: get("homeStreet"),
-        city: get("homeCity"),
-        state: get("homeState"),
-        postalCode: get("homePostalCode"),
-        country: get("homeCountry"),
-        landmark: get("homeLandmark") || undefined,
-      },
-      currentAddress: {
-        street: get("currentStreet"),
-        city: get("currentCity"),
-        state: get("currentState"),
-        postalCode: get("currentPostalCode"),
-        country: get("currentCountry"),
-        landmark: get("currentLandmark") || undefined,
-      },
-      emergencyContactName: get("emergencyContactName"),
-      emergencyContactRelation: get("emergencyContactRelation"),
-      emergencyContactPhone: get("emergencyContactPhone"),
-      height: get("height") ? Number(get("height")) : undefined,
-      bloodGroup: get("bloodGroup") || undefined,
+export async function createMember(data: {
+  name: string;
+  email: string;
+  phone?: string;
+  whatsapp?: string;
+  homeStreet?: string;
+  homeCity?: string;
+  homeState?: string;
+  homePostalCode?: string;
+  homeCountry?: string;
+  homeLandmark?: string;
+  currentStreet?: string;
+  currentCity?: string;
+  currentState?: string;
+  currentPostalCode?: string;
+  currentCountry?: string;
+  currentLandmark?: string;
+  emergencyContactName?: string;
+  emergencyContactRelation?: string;
+  emergencyContactPhone?: string;
+  height?: string | number;
+  bloodGroup?: string;
+}): Promise<{ success: boolean; userId?: string; error?: string }> {
+  const response = await fetch('/api/members', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
     },
-  })
+    body: JSON.stringify(data),
+  });
 
-  const emailAddress = user.emailAddresses[0]
-  if (emailAddress) {
-    await clerk.emailAddresses.updateEmailAddress(emailAddress.id, {
-      verified: true,
-    })
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error || 'Failed to create member');
   }
-
-  revalidatePath("/admin/members")
+  return result;
 }
 
-export async function deleteMember(userId: string) {
-  const clerk = await clerkClient()
-  await clerk.users.deleteUser(userId)
-  revalidatePath("/admin/members")
+export async function deleteMember(userId: string): Promise<{ success: boolean; error?: string }> {
+  const response = await fetch(`/api/members?userId=${encodeURIComponent(userId)}`, {
+    method: 'DELETE',
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error || 'Failed to delete member');
+  }
+  return result;
+}
+
+
+export async function fetchMembers({
+  page = 1,
+  limit = 10,
+  search = "",
+}: {
+  page?: number;
+  limit?: number;
+  search?: string;
+} = {}): Promise<{
+  success: boolean;
+  data?: Member[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  error?: string;
+}> {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+  });
+  if (search) params.append("search", search);
+
+  const response = await fetch(`/api/members?${params.toString()}`, {
+    method: 'GET',
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.error || 'Failed to fetch members');
+  }
+  return result;
 }

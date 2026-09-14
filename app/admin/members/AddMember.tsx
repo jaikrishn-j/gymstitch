@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select"
 import { BloodGroup } from "@/types"
 import { createMember } from "./actions"
+import { useMemberRefresh } from "./member-context"
 
 const COUNTRIES = [
   { code: "+91", name: "India" },
@@ -84,18 +85,49 @@ function getStatesForCountry(country: string): string[] {
 }
 
 export const AddMember = () => {
+  const refresh = useMemberRefresh()
   const [sameAddress, setSameAddress] = useState(false)
   const [homeCountry, setHomeCountry] = useState("India")
   const [homeState, setHomeState] = useState("")
   const [currentState, setCurrentState] = useState("")
   const [currentCountry, setCurrentCountry] = useState("")
   const [bloodGroup, setBloodGroup] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [open, setOpen] = useState(false)
 
   const homeStates = getStatesForCountry(homeCountry)
   const currentStates = getStatesForCountry(currentCountry || homeCountry)
 
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const form = e.currentTarget
+    const formData = new FormData(form)
+
+    const data: Record<string, string> = {}
+    formData.forEach((value, key) => {
+      if (typeof value === "string") data[key] = value
+    })
+
+    setLoading(true)
+    try {
+      await createMember(data as any)
+      setOpen(false)
+      form.reset()
+      setHomeState("")
+      setCurrentState("")
+      setCurrentCountry("")
+      setBloodGroup("")
+      setSameAddress(false)
+      refresh()
+    } catch (error: any) {
+      // error handled by form or toast if needed
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
           <Button size="sm">
@@ -113,7 +145,7 @@ export const AddMember = () => {
           </DialogDescription>
         </DialogHeader>
 
-        <form action={createMember} className="flex flex-col flex-1 overflow-hidden">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
 
             {/* Basic Info */}
@@ -336,7 +368,9 @@ export const AddMember = () => {
           </div>
 
           <DialogFooter className="px-6 py-4 border-t bg-muted/40">
-            <Button type="submit">Create Member</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? "Creating..." : "Create Member"}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

@@ -87,20 +87,6 @@ const data = [
         ],
     },
 
-    {
-        title: "Settings",
-        icon: Settings,
-        items: [
-            {
-                title: "Razorpay",
-                url: "/staff/pggateway",
-            },
-            {
-                title: "Gym Profile",
-                url: "/staff/gym",
-            },
-        ],
-    },
 ];
 
 const Staffsidebar = async ({profile}:{profile:UserProfile}) => {

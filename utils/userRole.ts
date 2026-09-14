@@ -107,19 +107,17 @@ export async function checkUserRole(
     level: PermissionLevel
 ):Promise<boolean>{
     const {userId} = await auth()
-    if(!userId) redirect("/login", RedirectType.replace)
+    if(!userId) return false
 
     const client = await clerkClient()
     const user = await client.users.getUser(userId)
     const userRole = user.privateMetadata?.role as UserRole
-
-    if(userRole !== UserRole.STAFF){
-        return false
-    }
+    if(userRole === UserRole.ADMIN) return true;
+    if(userRole !== UserRole.STAFF) return false;
 
     const permission = user.privateMetadata?.permission as | {name: string}[] | undefined
 
-    if(!permission){
+    if(!permission || permission.length === 0){
         return false
     }
 

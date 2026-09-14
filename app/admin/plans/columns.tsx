@@ -8,17 +8,22 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 
 import { type DataTableFeatures } from "./data-table-features"
-import { MemberActions } from "./MemberActions"
+import { PlanActions } from "./PlanActions"
 
-export type Member = {
-  id: string
+export type Plan = {
+  id: number
   name: string
-  email: string
-  phone: string
-  plan: string
+  descriptions: string | null
+  amount: string
+  offerPrice: string | null
+  includedFeatures: string[]
+  isAvailable: boolean
+  durationInDays: number
+  createdAt: Date
+  updatedAt: Date
 }
 
-const columnHelper = createColumnHelper<DataTableFeatures, Member>()
+const columnHelper = createColumnHelper<DataTableFeatures, Plan>()
 
 export const columns = columnHelper.columns([
   columnHelper.display({
@@ -63,36 +68,17 @@ export const columns = columnHelper.columns([
     ),
 
     cell: ({ row }) => {
-      const name = row.original.name
-
-      const initials = name
-        .split(" ")
-        .map((part) => part[0])
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-
       return (
-        <div className="flex min-w-[180px] items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-            {initials}
-          </div>
-
-          <div className="min-w-0">
-            <p className="truncate font-medium">
-              {name}
-            </p>
-
-            <p className="truncate text-xs text-muted-foreground">
-              {row.original.id}
-            </p>
-          </div>
+        <div className="min-w-[180px]">
+          <p className="truncate font-medium">
+            {row.original.name}
+          </p>
         </div>
       )
     },
   }),
 
-  columnHelper.accessor("email", {
+  columnHelper.accessor("amount", {
     header: ({ column }) => (
       <Button
         variant="ghost"
@@ -101,61 +87,98 @@ export const columns = columnHelper.columns([
           column.toggleSorting(column.getIsSorted() === "asc")
         }
       >
-        Email
+        Price
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
 
-    filterFn: "includesString",
-
     cell: ({ row }) => (
-      <span className="text-muted-foreground">
-        {row.original.email}
+      <span className="font-medium">
+        ₹{Number(row.original.amount).toLocaleString("en-IN")}
       </span>
     ),
   }),
 
-  columnHelper.accessor("phone", {
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        className="-ml-2 h-8 px-2"
-        onClick={() =>
-          column.toggleSorting(column.getIsSorted() === "asc")
-        }
-      >
-        Phone
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-
-    filterFn: "includesString",
-
-    cell: ({ row }) => (
-      <span className="text-muted-foreground">
-        {row.original.phone || ""}
-      </span>
-    ),
-  }),
-
-  columnHelper.accessor("plan", {
-    header: "Plan",
+  columnHelper.accessor("offerPrice", {
+    header: "Offer Price",
 
     cell: ({ row }) => {
-      const plan = row.original.plan
+      const offerPrice = row.original.offerPrice
+      if (!offerPrice) {
+        return <span className="text-muted-foreground">-</span>
+      }
+      return (
+        <span className="text-green-600 font-medium">
+          ₹{Number(offerPrice).toLocaleString("en-IN")}
+        </span>
+      )
+    },
+  }),
 
-      if (!plan || plan === "not activated") {
+  columnHelper.accessor("durationInDays", {
+    header: ({ column }) => (
+      <Button
+        variant="ghost"
+        className="-ml-2 h-8 px-2"
+        onClick={() =>
+          column.toggleSorting(column.getIsSorted() === "asc")
+        }
+      >
+        Duration
+        <ArrowUpDown className="ml-2 h-4 w-4" />
+      </Button>
+    ),
+
+    cell: ({ row }) => (
+      <span>{row.original.durationInDays} days</span>
+    ),
+  }),
+
+  columnHelper.accessor("isAvailable", {
+    header: "Status",
+
+    cell: ({ row }) => {
+      const isAvailable = row.original.isAvailable
+      return (
+        <Badge variant={isAvailable ? "default" : "secondary"}>
+          {isAvailable ? "Active" : "Inactive"}
+        </Badge>
+      )
+    },
+  }),
+
+  columnHelper.accessor("includedFeatures", {
+    header: "Features",
+
+    cell: ({ row }) => {
+      const features = row.original.includedFeatures ?? []
+
+      if (features.length === 0) {
         return (
           <Badge variant="outline">
-            Not activated
+            No features
           </Badge>
         )
       }
 
       return (
-        <Badge variant="secondary" className="font-normal">
-          {plan}
-        </Badge>
+        <div className="flex max-w-[320px] flex-wrap gap-1.5">
+          {features.slice(0, 3).map((feature, index) => (
+            <Badge
+              key={`${feature}-${index}`}
+              variant="secondary"
+              className="font-normal"
+            >
+              {feature}
+            </Badge>
+          ))}
+
+          {features.length > 3 && (
+            <Badge variant="outline">
+              +{features.length - 3}
+            </Badge>
+          )}
+        </div>
       )
     },
   }),
@@ -165,11 +188,11 @@ export const columns = columnHelper.columns([
     enableHiding: false,
 
     cell: ({ row }) => {
-      const member = row.original
+      const plan = row.original
 
       return (
         <div className="flex justify-end">
-          <MemberActions member={member} />
+          <PlanActions plan={plan} />
         </div>
       )
     },

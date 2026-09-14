@@ -1,12 +1,13 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import { MoreHorizontal, Eye, Pencil, Trash2, Copy, Check } from "lucide-react"
+import { useState } from "react";
+import { toast } from "sonner";
+import { MoreHorizontal, Eye, Pencil, Trash2, Copy, Check } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -14,7 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,62 +25,125 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { PERMISSION_MODULES } from "@/types/permissions"
-import { updateStaff, deleteStaff } from "./actions"
-import { type Staff, type StaffPermission } from "./columns"
+} from "@/components/ui/dropdown-menu";
+import { PERMISSION_MODULES } from "@/types/permissions";
+import { updateStaff, deleteStaff } from "./actions";
+import { type Staff, type StaffPermission } from "./columns";
+import { useStaffRefresh } from "./staff-context";
 
 const PERMISSION_OPTIONS = [
   { value: "null", label: "None" },
   { value: "read", label: "Read" },
   { value: "full", label: "Full" },
-] as const
+] as const;
 
 interface StaffActionsProps {
-  staff: Staff
+  staff: Staff;
 }
 
 export function StaffActions({ staff }: StaffActionsProps) {
-  const [viewOpen, setViewOpen] = useState(false)
-  const [editOpen, setEditOpen] = useState(false)
-  const [deleteOpen, setDeleteOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const formRef = useRef<HTMLFormElement>(null)
+  const refresh = useStaffRefresh();
+  const [viewOpen, setViewOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  // Form state for edit dialog
+  const [editName, setEditName] = useState(staff.name);
+  const [editEmail, setEditEmail] = useState(staff.email);
+  const [editPermissions, setEditPermissions] = useState<
+    Record<string, string>
+  >(() => {
+    const perms: Record<string, string> = {};
+    PERMISSION_MODULES.forEach((mod) => {
+      perms[mod.key] = getPermissionLevel(staff.permission, mod.key);
+    });
+    return perms;
+  });
 
   function getPermissionLevel(
     permissions: StaffPermission[],
     moduleKey: string
   ): string {
     for (const p of permissions) {
-      const name = typeof p === "string" ? p : p.name
+      const name = typeof p === "string" ? p : p.name;
       if (name.startsWith(`${moduleKey}:`)) {
-        return name.split(":")[1] || "full"
+        return name.split(":")[1] || "full";
       }
     }
-    return "null"
+    return "null";
   }
 
   function handleCopyId() {
-    navigator.clipboard.writeText(staff.id)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    navigator.clipboard.writeText(staff.id);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
-  async function handleEditSubmit(formData: FormData) {
-    await updateStaff(staff.id, formData)
-    setEditOpen(false)
+  // Reset edit form when opening dialog
+  const handleOpenEdit = () => {
+    setEditName(staff.name);
+    setEditEmail(staff.email);
+    setEditPermissions(() => {
+      const perms: Record<string, string> = {};
+      PERMISSION_MODULES.forEach((mod) => {
+        perms[mod.key] = getPermissionLevel(staff.permission, mod.key);
+      });
+      return perms;
+    });
+    setEditOpen(true);
+  };
+
+  async function handleEditSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editName.trim() || !editEmail.trim()) {
+      toast.error("Name and email are required");
+      return;
+    }
+
+    const permissionList = Object.entries(editPermissions)
+      .filter(([, level]) => level !== "null")
+      .map(([moduleKey, level]) => ({
+        name: `${moduleKey}:${level}`,
+      }));
+
+    setLoading(true);
+    try {
+      await updateStaff(staff.id, {
+        name: editName,
+        email: editEmail,
+        permissions: permissionList,
+      });
+      toast.success("Staff member updated successfully");
+      setEditOpen(false);
+      refresh();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update staff");
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleDelete() {
-    await deleteStaff(staff.id)
-    setDeleteOpen(false)
+    setLoading(true);
+    try {
+      await deleteStaff(staff.id);
+      toast.success("Staff member removed successfully");
+      setDeleteOpen(false);
+      refresh();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete staff");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -87,12 +151,12 @@ export function StaffActions({ staff }: StaffActionsProps) {
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant="ghost" size="icon" className="h-8 w-8" />
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <span className="sr-only">Open actions</span>
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
           }
-        >
-          <span className="sr-only">Open actions</span>
-          <MoreHorizontal className="h-4 w-4" />
-        </DropdownMenuTrigger>
+        />
 
         <DropdownMenuContent align="end" className="w-44">
           <DropdownMenuItem onClick={handleCopyId}>
@@ -109,7 +173,7 @@ export function StaffActions({ staff }: StaffActionsProps) {
             View staff
           </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={() => setEditOpen(true)}>
+          <DropdownMenuItem onClick={handleOpenEdit}>
             <Pencil className="mr-2 h-4 w-4" />
             Edit staff
           </DropdownMenuItem>
@@ -126,7 +190,7 @@ export function StaffActions({ staff }: StaffActionsProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* View Dialog */}
+      {/* View Dialog (unchanged) */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -188,14 +252,14 @@ export function StaffActions({ staff }: StaffActionsProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <form ref={formRef} action={handleEditSubmit} className="space-y-6">
+          <form onSubmit={handleEditSubmit} className="space-y-6">
             <div className="space-y-4">
               <div className="grid gap-2">
                 <Label htmlFor="edit-name">Full Name</Label>
                 <Input
                   id="edit-name"
-                  name="name"
-                  defaultValue={staff.name}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
                   required
                 />
               </div>
@@ -204,9 +268,9 @@ export function StaffActions({ staff }: StaffActionsProps) {
                 <Label htmlFor="edit-email">Email Address</Label>
                 <Input
                   id="edit-email"
-                  name="email"
                   type="email"
-                  defaultValue={staff.email}
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
                   required
                 />
               </div>
@@ -239,9 +303,12 @@ export function StaffActions({ staff }: StaffActionsProps) {
                             id={`edit_${mod.key}_${opt.value}`}
                             name={`permission_${mod.key}`}
                             value={opt.value}
-                            defaultChecked={
-                              getPermissionLevel(staff.permission, mod.key) ===
-                              opt.value
+                            checked={editPermissions[mod.key] === opt.value}
+                            onChange={() =>
+                              setEditPermissions((prev) => ({
+                                ...prev,
+                                [mod.key]: opt.value,
+                              }))
                             }
                             className="sr-only peer"
                           />
@@ -264,7 +331,9 @@ export function StaffActions({ staff }: StaffActionsProps) {
               >
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving..." : "Save Changes"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -286,13 +355,14 @@ export function StaffActions({ staff }: StaffActionsProps) {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
+              disabled={loading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Remove
+              {loading ? "Removing..." : "Remove"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
-  )
+  );
 }

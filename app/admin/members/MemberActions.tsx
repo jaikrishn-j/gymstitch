@@ -33,12 +33,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { deleteMember } from "./actions"
 import { type Member } from "./columns"
+import { useMemberRefresh } from "./member-context"
 
 interface MemberActionsProps {
   member: Member
 }
 
 export function MemberActions({ member }: MemberActionsProps) {
+  const refresh = useMemberRefresh()
   const [viewOpen, setViewOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -52,6 +54,7 @@ export function MemberActions({ member }: MemberActionsProps) {
   async function handleDelete() {
     await deleteMember(member.id)
     setDeleteOpen(false)
+    refresh()
   }
 
   return (
@@ -118,6 +121,13 @@ export function MemberActions({ member }: MemberActionsProps) {
               <Label className="text-muted-foreground">Email Address</Label>
               <p className="text-sm">{member.email}</p>
             </div>
+
+            {member.phone && (
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">Phone Number</Label>
+                <p className="text-sm">{member.phone}</p>
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label className="text-muted-foreground">Member ID</Label>
