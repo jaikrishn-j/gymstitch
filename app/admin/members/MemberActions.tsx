@@ -102,49 +102,80 @@ export function MemberActions({ member }: MemberActionsProps) {
       </DropdownMenu>
 
       {/* View Dialog */}
+      
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Member Details</DialogTitle>
+            <DialogTitle className="text-xl">Member Details</DialogTitle>
             <DialogDescription>
               View information for {member.name}.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Full Name</Label>
-              <p className="text-sm">{member.name}</p>
+          <div className="space-y-6">
+            {/* Member */}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Member</p>
+              <p className="text-2xl font-bold tracking-tight">{member.name}</p>
             </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Email Address</Label>
-              <p className="text-sm">{member.email}</p>
-            </div>
-
-            {member.phone && (
-              <div className="grid gap-2">
-                <Label className="text-muted-foreground">Phone Number</Label>
-                <p className="text-sm">{member.phone}</p>
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Contact Information</h3>
+                <p className="text-sm text-muted-foreground">
+                  Member contact details
+                </p>
               </div>
-            )}
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Member ID</Label>
-              <p className="font-mono text-xs text-muted-foreground">
-                {member.id}
-              </p>
+              <div className="grid gap-4 rounded-lg border p-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Email Address</Label>
+                  <p className="text-sm font-medium break-all">{member.email}</p>
+                </div>
+
+                {member.phone && (
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground">Phone Number</Label>
+                    <p className="text-sm font-medium">{member.phone}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Current Plan</Label>
-              {!member.plan || member.plan === "not activated" ? (
-                <Badge variant="outline">Not activated</Badge>
-              ) : (
-                <Badge variant="secondary" className="w-fit font-normal">
-                  {member.plan}
-                </Badge>
-              )}
+            {/* Membership */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Membership</h3>
+                <p className="text-sm text-muted-foreground">
+                  Current membership status
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Current Plan</Label>
+                  <p className="text-sm font-medium">
+                    {member.plan && member.plan !== "not activated"
+                      ? member.plan
+                      : "No active plan"}
+                  </p>
+                </div>
+
+                {!member.plan || member.plan === "not activated" ? (
+                  <Badge variant="outline">Not activated</Badge>
+                ) : (
+                  <Badge variant="secondary">{member.plan}</Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Member ID */}
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">Member ID</Label>
+              <div className="rounded-md bg-muted px-3 py-2">
+                <p className="font-mono text-xs break-all">{member.id}</p>
+              </div>
             </div>
           </div>
 
@@ -155,6 +186,7 @@ export function MemberActions({ member }: MemberActionsProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* Delete Confirmation */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>

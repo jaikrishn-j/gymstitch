@@ -6,6 +6,7 @@ import MembersContent from "./MembersContent";
 export default async function StaffMembersPage() {
   const hasRead = await checkUserRole(PermissionModule.MEMBERS, "read");
 
+
   if (!hasRead) {
     return (
       <div className="w-full">

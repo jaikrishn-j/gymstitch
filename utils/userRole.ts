@@ -105,25 +105,33 @@ export async function redirectByRole(currentPath:string,allowedRoles: UserRole[]
 export async function checkUserRole(
     module: PermissionModule,
     level: PermissionLevel
-):Promise<boolean>{
-    const {userId} = await auth()
-    if(!userId) return false
+): Promise<boolean> {
+    const { userId } = await auth()
+    if (!userId) return false
 
     const client = await clerkClient()
     const user = await client.users.getUser(userId)
     const userRole = user.privateMetadata?.role as UserRole
-    if(userRole === UserRole.ADMIN) return true;
-    if(userRole !== UserRole.STAFF) return false;
+    
+    if (userRole === UserRole.ADMIN) return true;
+    if (userRole !== UserRole.STAFF || !level) return false;
 
-    const permission = user.privateMetadata?.permission as | {name: string}[] | undefined
+    const permissions = user.privateMetadata?.permission as { name: string }[] | undefined
 
-    if(!permission || permission.length === 0){
+    if (!permissions || permissions.length === 0) {
         return false
     }
 
-    const requiredPermission = `${module}:${level}`
+    return permissions.some((p) => {
+        const [permModule, permLevel] = p.name.split(":")
+        
+        // Skip if this permission is for a different module
+        if (permModule !== module) return false
 
-    return permission.some(
-        (permission) => permission.name === requiredPermission
-    )
+        // Access check logic
+        if (permLevel === "full") return true           // 'full' grants access to both 'read' and 'full'
+        if (permLevel === "read") return level === "read" // 'read' grants access only if 'read' is requested
+        
+        return false
+    })
 }

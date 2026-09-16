@@ -69,53 +69,22 @@ export function PaymentActions({ payment }: PaymentActionsProps) {
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Payment Details</DialogTitle>
+            <DialogTitle className="text-xl">Payment Details</DialogTitle>
             <DialogDescription>
               View information for payment #{payment.id}.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Payment ID</Label>
-              <p className="font-mono text-xs text-muted-foreground">
-                {payment.id}
-              </p>
-            </div>
+          <div className="space-y-6">
+            {/* Amount & Status */}
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Payment Amount</p>
+                <p className="text-2xl font-bold tracking-tight">
+                  ₹{Number(payment.amount).toLocaleString("en-IN")}
+                </p>
+              </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">User</Label>
-              <p className="text-sm">{payment.userName}</p>
-              <p className="text-xs text-muted-foreground">{payment.userEmail}</p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Amount</Label>
-              <p className="text-sm font-medium">
-                ₹{Number(payment.amount).toLocaleString("en-IN")}
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Plan</Label>
-              {payment.planName ? (
-                <Badge variant="secondary" className="w-fit font-normal">
-                  {payment.planName}
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="w-fit">
-                  Registration
-                </Badge>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Payment Method</Label>
-              <p className="text-sm capitalize">{payment.paymentMethod}</p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Status</Label>
               <Badge
                 variant={
                   payment.status === "SUCCESS"
@@ -124,29 +93,83 @@ export function PaymentActions({ payment }: PaymentActionsProps) {
                       ? "secondary"
                       : "destructive"
                 }
-                className="w-fit font-normal"
               >
                 {payment.status}
               </Badge>
             </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Date</Label>
-              <p className="text-sm">
-                {new Date(payment.paidAt).toLocaleDateString("en-IN", {
-                  day: "numeric",
-                  month: "long",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </p>
+            {/* Payment Information */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Payment Information</h3>
+                <p className="text-sm text-muted-foreground">
+                  Transaction and membership details
+                </p>
+              </div>
+
+              <div className="grid gap-4 rounded-lg border p-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Payment ID</Label>
+                  <p className="font-mono text-xs break-all">{payment.id}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Plan</Label>
+                  <div>
+                    {payment.planName ? (
+                      <Badge variant="secondary">{payment.planName}</Badge>
+                    ) : (
+                      <Badge variant="outline">Registration</Badge>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-muted-foreground">Payment Method</Label>
+                    <p className="text-sm font-medium capitalize">
+                      {payment.paymentMethod}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1 text-right">
+                    <Label className="text-muted-foreground">Date</Label>
+                    <p className="text-sm font-medium">
+                      {new Date(payment.paidAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
+            {/* User */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Member</h3>
+                <p className="text-sm text-muted-foreground">
+                  Account associated with this payment
+                </p>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                <p className="text-lg font-semibold">{payment.userName}</p>
+                <p className="text-sm text-muted-foreground break-all">
+                  {payment.userEmail}
+                </p>
+              </div>
+            </div>
+
+            {/* Description */}
             {payment.description && (
-              <div className="grid gap-2">
+              <div className="space-y-2">
                 <Label className="text-muted-foreground">Description</Label>
-                <p className="text-sm">{payment.description}</p>
+                <div className="rounded-lg border bg-muted/50 p-3">
+                  <p className="text-sm">{payment.description}</p>
+                </div>
               </div>
             )}
           </div>

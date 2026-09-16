@@ -111,65 +111,82 @@ function StaffActionsReadonly({ staff }: { staff: Staff }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Staff Details</DialogTitle>
-            <DialogDescription>
-              View information for {staff.name}.
-            </DialogDescription>
-          </DialogHeader>
+       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl">Staff Details</DialogTitle>
+          <DialogDescription>
+            View information for {staff.name}.
+          </DialogDescription>
+        </DialogHeader>
 
+        <div className="space-y-6">
+          {/* Staff */}
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Staff Member</p>
+            <p className="text-2xl font-bold tracking-tight">{staff.name}</p>
+          </div>
+
+          {/* Account Information */}
           <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Full Name</Label>
-              <p className="text-sm">{staff.name}</p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Email Address</Label>
-              <p className="text-sm">{staff.email}</p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">User ID</Label>
-              <p className="font-mono text-xs text-muted-foreground">
-                {staff.id}
+            <div>
+              <h3 className="text-sm font-semibold">Account Information</h3>
+              <p className="text-sm text-muted-foreground">
+                Staff account details
               </p>
             </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Permissions</Label>
+            <div className="grid gap-4 rounded-lg border p-4">
+              <div className="space-y-1">
+                <Label className="text-muted-foreground">Email Address</Label>
+                <p className="text-sm font-medium break-all">{staff.email}</p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground">User ID</Label>
+                <div className="rounded-md bg-muted px-3 py-2">
+                  <p className="font-mono text-xs break-all">{staff.id}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Permissions */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">Permissions</h3>
+              <p className="text-sm text-muted-foreground">
+                Access granted to this staff member
+              </p>
+            </div>
+
+            <div className="rounded-lg border p-4">
               {staff.permission.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {staff.permission.map((p, i) => (
-                    <Badge
-                      key={i}
-                      variant="secondary"
-                      className="font-normal"
-                    >
+                    <Badge key={i} variant="secondary">
                       {typeof p === "string" ? p : p.name}
                     </Badge>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  No permissions
-                </p>
+                <div className="flex items-center justify-center py-4">
+                  <p className="text-sm text-muted-foreground">
+                    No permissions assigned
+                  </p>
+                </div>
               )}
             </div>
           </div>
+        </div>
 
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setViewOpen(false)}
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setViewOpen(false)}>
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   );
 }
@@ -213,60 +230,77 @@ function StaffActionsFull({ staff }: { staff: Staff }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Staff Details</DialogTitle>
+            <DialogTitle className="text-xl">Staff Details</DialogTitle>
             <DialogDescription>
               View information for {staff.name}.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Full Name</Label>
-              <p className="text-sm">{staff.name}</p>
+          <div className="space-y-6">
+            {/* Staff */}
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">Staff Member</p>
+              <p className="text-2xl font-bold tracking-tight">{staff.name}</p>
             </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Email Address</Label>
-              <p className="text-sm">{staff.email}</p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">User ID</Label>
-              <p className="font-mono text-xs text-muted-foreground">
-                {staff.id}
-              </p>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">Permissions</Label>
-              {staff.permission.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {staff.permission.map((p, i) => (
-                    <Badge
-                      key={i}
-                      variant="secondary"
-                      className="font-normal"
-                    >
-                      {typeof p === "string" ? p : p.name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
+            {/* Account Information */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Account Information</h3>
                 <p className="text-sm text-muted-foreground">
-                  No permissions
+                  Staff account details
                 </p>
-              )}
+              </div>
+
+              <div className="grid gap-4 rounded-lg border p-4">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">Email Address</Label>
+                  <p className="text-sm font-medium break-all">{staff.email}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">User ID</Label>
+                  <div className="rounded-md bg-muted px-3 py-2">
+                    <p className="font-mono text-xs break-all">{staff.id}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Permissions */}
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Permissions</h3>
+                <p className="text-sm text-muted-foreground">
+                  Access granted to this staff member
+                </p>
+              </div>
+
+              <div className="rounded-lg border p-4">
+                {staff.permission.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {staff.permission.map((p, i) => (
+                      <Badge key={i} variant="secondary">
+                        {typeof p === "string" ? p : p.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center py-4">
+                    <p className="text-sm text-muted-foreground">
+                      No permissions assigned
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setViewOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setViewOpen(false)}>
               Close
             </Button>
           </DialogFooter>
