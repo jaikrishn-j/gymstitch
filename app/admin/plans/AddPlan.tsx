@@ -105,7 +105,7 @@ export const AddPlan = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <Button size="sm">
+          <Button>
             <span className="mr-1 text-base leading-none">+</span>
             New Plan
           </Button>

@@ -234,7 +234,7 @@ export default function AnalyticsContent({ basePath }: AnalyticsContentProps) {
               Revenue trends, payment breakdowns, and member insights.
             </p>
           </div>
-            <Button variant="outline" size="sm" render={<Link href={basePath} />}>
+            <Button variant="outline"  render={<Link href={basePath} />}>
               Back to Dashboard
             </Button>
         </div>

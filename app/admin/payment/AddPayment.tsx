@@ -241,7 +241,7 @@ export const AddPayment = () => {
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={
-          <Button size="sm">
+          <Button>
             <span className="mr-1 text-base leading-none">+</span>
             Add Payment
           </Button>

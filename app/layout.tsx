@@ -1,14 +1,12 @@
 import type { Metadata } from "next";
-import { Inter, Gelasio, JetBrains_Mono } from "next/font/google";
+import { Inter, Gelasio, JetBrains_Mono, Manrope } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import { cn } from "@/lib/utils";
 
-const fontSans = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
+const manrope = Manrope({subsets:['latin'],variable:'--font-sans'});
 
 const fontSerif = Gelasio({
   subsets: ["latin"],
@@ -31,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={cn("font-sans", manrope.variable)}>
       <body className="antialiased">
         <ClerkProvider>
           <ThemeProvider

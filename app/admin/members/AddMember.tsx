@@ -248,7 +248,7 @@ export const AddMember = () => {
         if (!value) resetForm()
       }}
     >
-      <DialogTrigger render={<Button size="sm">+ New Member</Button>} />
+      <DialogTrigger render={<Button>+ New Member</Button>} />
 
       <DialogContent className="max-h-[calc(100vh-2rem)] sm:max-w-2xl">
         <form

@@ -32,6 +32,7 @@ import LogoutInfo from "@/components/members/LogoutInfo";
 import { DynamicBreadcrumb } from "@/components/admin/BreadCrumbManager";
 import { ModeToggle } from "@/components/ThemeToggle";
 import Staffsidebar from "@/components/staff/Staffsidebar";
+import { UserButton } from "@clerk/nextjs";
 
 type Props = {
     children: React.ReactNode;
@@ -59,120 +60,45 @@ const Layout = async ({ children }: Props) => {
             <Staffsidebar profile={user}/>
 
             <SidebarInset>
-                <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center justify-between border-b bg-background px-4">
-                    <div className="flex min-w-0 items-center gap-2">
-                        <SidebarTrigger className="-ml-1 shrink-0" />
+                <div className="flex h-14 items-center border-b bg-background px-4">
+                    <div className="flex items-center gap-2">
+                        <SidebarTrigger />
 
                         <Separator
                             orientation="vertical"
-                            className="mr-2 data-[orientation=vertical]:h-4"
+                            className="mr-2 h-4"
                         />
 
-                        <DynamicBreadcrumb />
+                        <div className="text-sm font-medium">
+                            Admin
+                        </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="ml-auto flex items-center gap-2">
                         <Link
-                            href="/staff/notifications"
-                            aria-label="Notifications"
-                            className="relative flex h-9 w-9 items-center justify-center rounded-md transition-colors hover:bg-muted"
+                            href="/admin/notifications"
+                            className="
+                                flex h-9 w-9 items-center justify-center
+                                rounded-md
+                                text-muted-foreground
+                                transition-colors
+                                hover:bg-accent
+                                hover:text-foreground
+                            "
                         >
-                            <Bell className="h-5 w-5" />
-
-                            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+                            <Bell className="h-4 w-4" />
                         </Link>
 
                         <ModeToggle />
 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger
-                                className="flex items-center gap-2 rounded-md px-2 py-1.5 outline-none transition-colors hover:bg-muted"
-                            >
-                                {imageUrl ? (
-                                    <img
-                                        src={imageUrl}
-                                        alt={fullName}
-                                        className="h-8 w-8 rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                                        <User className="h-4 w-4" />
-                                    </div>
-                                )}
+                        <Separator
+                            orientation="vertical"
+                            className="mx-1 h-6"
+                        />
 
-                                <div className="hidden text-left md:block">
-                                    <p className="max-w-32 truncate text-sm font-medium">
-                                        {fullName}
-                                    </p>
-
-                                    <p className="max-w-40 truncate text-xs text-muted-foreground">
-                                        {email}
-                                    </p>
-                                </div>
-
-                                <ChevronDown className="hidden h-4 w-4 md:block" />
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent align="end" className="w-64">
-                                <DropdownMenuGroup>
-                                    <DropdownMenuLabel className="font-normal">
-                                        <div className="flex items-center gap-3">
-                                            {imageUrl ? (
-                                                <img
-                                                    src={imageUrl}
-                                                    alt={fullName}
-                                                    className="h-10 w-10 rounded-full object-cover"
-                                                />
-                                            ) : (
-                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                                                    <User className="h-5 w-5" />
-                                                </div>
-                                            )}
-
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-medium">
-                                                    {fullName}
-                                                </p>
-
-                                                <p className="truncate text-xs text-muted-foreground">
-                                                    {email}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </DropdownMenuLabel>
-                                </DropdownMenuGroup>
-
-                                <DropdownMenuSeparator />
-
-                                <DropdownMenuItem >
-                                    <Link
-                                        href="/staff/profile"
-                                        className="flex cursor-pointer items-center gap-2"
-                                    >
-                                        <User className="h-4 w-4" />
-                                        <span>Profile</span>
-                                    </Link>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem >
-                                    <Link
-                                        href="/staff/settings"
-                                        className="flex cursor-pointer items-center gap-2"
-                                    >
-                                        <Settings className="h-4 w-4" />
-                                        <span>Settings</span>
-                                    </Link>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuSeparator />
-
-                                <DropdownMenuItem>
-                                    <LogoutInfo />
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <UserButton />
                     </div>
-                </header>
+                </div>
 
                 <main className="flex-1">
                     {children}

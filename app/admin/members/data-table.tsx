@@ -157,7 +157,7 @@ export function DataTable<TData extends RowData>({
               render={
                 <Button
                   variant="outline"
-                  size="sm"
+                  
                   className="gap-2"
                 />
               }

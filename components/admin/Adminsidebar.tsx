@@ -16,35 +16,23 @@ import {
 } from "../ui/sidebar";
 
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuGroup,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
-
-import {
     ChevronDown,
     Dumbbell,
-    User,
-    Settings,
     LayoutDashboard,
-    BarChart3,
     Users,
-    UserCog,
     CreditCard,
-    Receipt,
+    Settings,
     ShieldCheck,
-    Building2,
+    Sparkles,
 } from "lucide-react";
 
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "../ui/collapsible";
 
-import { UserProfile, UserRole } from "@/types";
-import { checkUserType } from "@/utils/userRole";
-import LogoutInfo from "../members/LogoutInfo";
-
+import { UserProfile } from "@/types";
 
 const data = [
     {
@@ -61,7 +49,6 @@ const data = [
             },
         ],
     },
-
     {
         title: "Users",
         icon: Users,
@@ -76,13 +63,12 @@ const data = [
             },
         ],
     },
-
     {
-        title: "Payment",
+        title: "Payments",
         icon: CreditCard,
         items: [
             {
-                title: "Payment",
+                title: "Payments",
                 url: "/admin/payment",
             },
             {
@@ -91,7 +77,6 @@ const data = [
             },
         ],
     },
-
     {
         title: "Settings",
         icon: Settings,
@@ -108,9 +93,11 @@ const data = [
     },
 ];
 
-const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
-    
-
+const Adminsidebar = async ({
+    profile,
+}: {
+    profile: UserProfile;
+}) => {
     if (!profile) {
         return redirect("/login", RedirectType.replace);
     }
@@ -120,164 +107,69 @@ const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
         "Admin";
 
     return (
-        <Sidebar collapsible="icon">
+        <Sidebar
+            collapsible="icon"
+            variant="sidebar"
+            className="border-r"
+        >
+            {/* ───────────────── BRAND ───────────────── */}
 
-            {/* ───────────────── HEADER ───────────────── */}
-            <SidebarHeader className="border-b">
+            <SidebarHeader className="px-3 pb-3 pt-4">
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger
+                        <Link
+                            href="/admin"
+                            className="
+                                group
+                                flex h-14 items-center gap-3
+                                rounded-xl
+                                px-2.5
+                                transition-colors
+                                hover:bg-sidebar-accent
+                            "
+                        >
+                            <div
                                 className="
-                                    group flex w-full items-center gap-3
-                                    rounded-lg px-2 py-2.5
-                                    text-left outline-none
-                                    transition-colors
-                                    hover:bg-sidebar-accent
-                                    hover:text-sidebar-accent-foreground
-                                    focus-visible:ring-2
-                                    focus-visible:ring-sidebar-ring
+                                    relative
+                                    flex h-9 w-9 shrink-0
+                                    items-center justify-center
+                                    rounded-xl
+                                    bg-primary
+                                    text-primary-foreground
+                                    shadow-sm
                                 "
                             >
-                                {/* Avatar */}
-                                {profile.imageUrl ? (
-                                    <img
-                                        src={profile.imageUrl}
-                                        alt={fullName}
-                                        className="
-                                            h-9 w-9 shrink-0
-                                            rounded-full object-cover
-                                        "
-                                    />
-                                ) : (
-                                    <div
-                                        className="
-                                            flex h-9 w-9 shrink-0
-                                            items-center justify-center
-                                            rounded-full
-                                            bg-primary/10
-                                            text-primary
-                                        "
-                                    >
-                                        <User className="h-4 w-4" />
-                                    </div>
-                                )}
+                                <Dumbbell className="h-[18px] w-[18px]" />
+                            </div>
 
-                                {/* User information */}
-                                <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-semibold">
-                                        {fullName}
-                                    </p>
+                            <div className="min-w-0 flex-1 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="truncate text-[15px] font-bold tracking-tight">
+                                        Gym Stitch
+                                    </span>
 
-                                    <p className="truncate text-xs text-muted-foreground">
-                                        {profile.email}
-                                    </p>
+                                    <Sparkles className="h-3 w-3 shrink-0 text-muted-foreground" />
                                 </div>
 
-                                <ChevronDown
-                                    className="
-                                        h-4 w-4 shrink-0
-                                        text-muted-foreground
-                                        transition-transform
-                                        duration-200
-                                        group-data-[state=open]:rotate-180
-                                    "
-                                />
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent
-                                align="start"
-                                side="bottom"
-                                className="w-64"
-                            >
-                                <DropdownMenuGroup>
-
-                                    {/* Profile summary */}
-                                    <div className="px-3 py-3">
-                                        <div className="flex items-center gap-3">
-
-                                            {profile.imageUrl ? (
-                                                <img
-                                                    src={profile.imageUrl}
-                                                    alt={fullName}
-                                                    className="
-                                                        h-10 w-10 shrink-0
-                                                        rounded-full object-cover
-                                                    "
-                                                />
-                                            ) : (
-                                                <div
-                                                    className="
-                                                        flex h-10 w-10 shrink-0
-                                                        items-center justify-center
-                                                        rounded-full
-                                                        bg-primary/10
-                                                        text-primary
-                                                    "
-                                                >
-                                                    <User className="h-5 w-5" />
-                                                </div>
-                                            )}
-
-                                            <div className="min-w-0">
-                                                <p className="truncate text-sm font-semibold">
-                                                    {fullName}
-                                                </p>
-
-                                                <p className="truncate text-xs text-muted-foreground">
-                                                    {profile.email}
-                                                </p>
-                                            </div>
-
-                                        </div>
-                                    </div>
-
-                                    <DropdownMenuSeparator />
-
-                                    {/* Profile */}
-                                    <DropdownMenuItem >
-                                        <Link
-                                            href="/admin/profile"
-                                            className="
-                                                flex cursor-pointer
-                                                items-center gap-2
-                                            "
-                                        >
-                                            <User className="h-4 w-4" />
-                                            <span>Profile</span>
-                                        </Link>
-                                    </DropdownMenuItem>
-
-                                    {/* Settings */}
-                                    <DropdownMenuItem >
-                                        <Link
-                                            href="/admin/settings"
-                                            className="
-                                                flex cursor-pointer
-                                                items-center gap-2
-                                            "
-                                        >
-                                            <Settings className="h-4 w-4" />
-                                            <span>Settings</span>
-                                        </Link>
-                                    </DropdownMenuItem>
-
-                                    <DropdownMenuSeparator />
-
-                                    {/* Logout */}
-                                    <LogoutInfo />
-
-                                </DropdownMenuGroup>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                                <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                                    Gym management
+                                </p>
+                            </div>
+                        </Link>
                     </SidebarMenuItem>
                 </SidebarMenu>
             </SidebarHeader>
 
-            {/* ───────────────── CONTENT ───────────────── */}
-            <SidebarContent className="px-2 py-4">
-                <SidebarMenu className="gap-1">
+            {/* ───────────────── NAVIGATION ───────────────── */}
 
+            <SidebarContent className="px-3">
+                <div className="mb-3 px-2 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                        Workspace
+                    </p>
+                </div>
+
+                <SidebarMenu className="gap-2">
                     {data.map((group) => {
                         const GroupIcon = group.icon;
 
@@ -288,31 +180,39 @@ const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
                                 className="group/collapsible"
                             >
                                 <SidebarMenuItem>
-
-                                    {/* Group */}
                                     <CollapsibleTrigger
                                         render={
                                             <SidebarMenuButton
                                                 tooltip={group.title}
                                                 className="
                                                     h-10
-                                                    rounded-lg
+                                                    rounded-xl
+                                                    px-2
                                                     font-medium
-                                                    transition-all
-                                                    duration-200
                                                     hover:bg-sidebar-accent
-                                                    hover:text-sidebar-accent-foreground
+                                                    data-[state=open]:bg-sidebar-accent/70
                                                 "
                                             />
                                         }
                                     >
-                                        <GroupIcon className="h-[18px] w-[18px]" />
+                                        <span
+                                            className="
+                                                flex h-7 w-7 shrink-0
+                                                items-center justify-center
+                                                rounded-lg
+                                                bg-muted
+                                                text-muted-foreground
+                                                group-data-[state=open]/collapsible:bg-background
+                                                group-data-[state=open]/collapsible:text-foreground
+                                            "
+                                        >
+                                            <GroupIcon className="h-[15px] w-[15px]" />
+                                        </span>
 
                                         <span className="truncate">
                                             {group.title}
                                         </span>
 
-                                        {/* Expand / Collapse arrow */}
                                         <ChevronDown
                                             className="
                                                 ml-auto
@@ -326,80 +226,122 @@ const Adminsidebar = async ({profile}:{profile:UserProfile}) => {
                                         />
                                     </CollapsibleTrigger>
 
-                                    {/* Sub items */}
                                     <CollapsibleContent>
-                                        <SidebarMenuSub className="ml-3.5 border-l px-2">
-
+                                        <SidebarMenuSub
+                                            className="
+                                                ml-3.5
+                                                mt-1
+                                                border-l
+                                                border-border/70
+                                                px-2
+                                            "
+                                        >
                                             {group.items.map((item) => (
                                                 <SidebarMenuSubItem
                                                     key={item.url}
                                                 >
                                                     <SidebarMenuSubButton
                                                         render={
-                                                            <Link href={item.url} />
+                                                            <Link
+                                                                href={item.url}
+                                                            />
                                                         }
                                                         className="
+                                                            relative
                                                             h-9
                                                             rounded-lg
-                                                            text-sidebar-foreground/75
-                                                            transition-all
-                                                            duration-200
+                                                            pl-3
+                                                            text-sm
+                                                            text-muted-foreground
+                                                            transition-colors
                                                             hover:bg-sidebar-accent
-                                                            hover:text-sidebar-accent-foreground
+                                                            hover:text-foreground
                                                         "
                                                     >
-                                                        <span>
+                                                        <span className="truncate">
                                                             {item.title}
                                                         </span>
                                                     </SidebarMenuSubButton>
                                                 </SidebarMenuSubItem>
                                             ))}
-
                                         </SidebarMenuSub>
                                     </CollapsibleContent>
-
                                 </SidebarMenuItem>
                             </Collapsible>
                         );
                     })}
-
                 </SidebarMenu>
             </SidebarContent>
 
             {/* ───────────────── FOOTER ───────────────── */}
-            <SidebarFooter className="border-t p-2">
+
+            <SidebarFooter className="px-3 pb-3">
                 <div
                     className="
-                        flex items-center gap-3
-                        rounded-lg
-                        bg-sidebar-accent/50
-                        px-3 py-2.5
+                        rounded-xl
+                        bg-muted/60
+                        p-2
+                        group-data-[collapsible=icon]/sidebar-wrapper:bg-transparent
+                        group-data-[collapsible=icon]/sidebar-wrapper:p-0
                     "
                 >
-                    <div
-                        className="
-                            flex h-8 w-8 shrink-0
-                            items-center justify-center
-                            rounded-full
-                            bg-primary/10
-                            text-primary
-                        "
-                    >
-                        <Dumbbell className="h-4 w-4" />
-                    </div>
+                    <SidebarMenu>
+                        <SidebarMenuItem>
+                            <div
+                                className="
+                                    flex items-center gap-3
+                                    rounded-lg
+                                    bg-background
+                                    px-2.5 py-2.5
+                                    shadow-sm
+                                    ring-1 ring-border/60
+                                    group-data-[collapsible=icon]/sidebar-wrapper:justify-center
+                                    group-data-[collapsible=icon]/sidebar-wrapper:px-0
+                                "
+                            >
+                                <div
+                                    className="
+                                        flex h-8 w-8 shrink-0
+                                        items-center justify-center
+                                        rounded-full
+                                        bg-muted
+                                        ring-1 ring-border
+                                    "
+                                >
+                                    {profile.imageUrl ? (
+                                        <img
+                                            src={profile.imageUrl}
+                                            alt={fullName}
+                                            className="h-8 w-8 rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                </div>
 
-                    <div className="min-w-0">
-                        <p className="truncate text-xs font-semibold">
-                            Admin Portal
-                        </p>
+                                <div className="min-w-0 flex-1 group-data-[collapsible=icon]/sidebar-wrapper:hidden">
+                                    <p className="truncate text-xs font-semibold">
+                                        {fullName}
+                                    </p>
 
-                        <p className="truncate text-[11px] text-muted-foreground">
-                            GymStitch
-                        </p>
-                    </div>
+                                    <p className="truncate text-[11px] text-muted-foreground">
+                                        Administrator
+                                    </p>
+                                </div>
+
+                                <div
+                                    className="
+                                        h-1.5 w-1.5 shrink-0
+                                        rounded-full
+                                        bg-emerald-500
+                                        group-data-[collapsible=icon]/sidebar-wrapper:hidden
+                                    "
+                                />
+                            </div>
+                        </SidebarMenuItem>
+                    </SidebarMenu>
                 </div>
             </SidebarFooter>
-
         </Sidebar>
     );
 };

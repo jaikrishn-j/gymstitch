@@ -646,7 +646,6 @@ function StaffDataTable({
               render={
                 <Button
                   variant="outline"
-                  size="sm"
                   className="gap-2"
                 />
               }

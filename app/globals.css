@@ -1,7 +1,8 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
-
 
 /* ============================================================
    LIGHT THEME
@@ -12,90 +13,87 @@
      Core
      ---------------------------------------------------------- */
 
-  --background: oklch(0.975 0.012 260);
-  --foreground: oklch(0.16 0.035 270);
-
   /* ----------------------------------------------------------
      Surfaces
      ---------------------------------------------------------- */
 
-  --card: oklch(0.99 0.006 260);
-  --card-foreground: oklch(0.16 0.035 270);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.148 0.004 228.8);
 
-  --popover: oklch(0.99 0.006 260);
-  --popover-foreground: oklch(0.16 0.035 270);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.148 0.004 228.8);
 
   /* ----------------------------------------------------------
      Brand
      Electric Violet
      ---------------------------------------------------------- */
 
-  --primary: oklch(0.59 0.24 290);
-  --primary-foreground: oklch(0.99 0.005 260);
+  --primary: oklch(0.218 0.008 223.9);
+  --primary-foreground: oklch(0.987 0.002 197.1);
 
   /* ----------------------------------------------------------
      Secondary
      ---------------------------------------------------------- */
 
-  --secondary: oklch(0.91 0.025 265);
-  --secondary-foreground: oklch(0.22 0.045 270);
+  --secondary: oklch(0.963 0.002 197.1);
+  --secondary-foreground: oklch(0.218 0.008 223.9);
 
   /* ----------------------------------------------------------
      Muted
      ---------------------------------------------------------- */
 
-  --muted: oklch(0.935 0.018 260);
-  --muted-foreground: oklch(0.49 0.035 270);
+  --muted: oklch(0.963 0.002 197.1);
+  --muted-foreground: oklch(0.56 0.021 213.5);
 
   /* ----------------------------------------------------------
      Accent
      Electric Cyan
      ---------------------------------------------------------- */
 
-  --accent: oklch(0.92 0.055 205);
-  --accent-foreground: oklch(0.30 0.12 225);
+  --accent: oklch(0.963 0.002 197.1);
+  --accent-foreground: oklch(0.218 0.008 223.9);
 
   /* ----------------------------------------------------------
      Destructive
      ---------------------------------------------------------- */
 
-  --destructive: oklch(0.60 0.23 25);
+  --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.99 0.005 260);
 
   /* ----------------------------------------------------------
      Borders
      ---------------------------------------------------------- */
 
-  --border: oklch(0.88 0.018 265);
-  --input: oklch(0.88 0.018 265);
+  --border: oklch(0.925 0.005 214.3);
+  --input: oklch(0.925 0.005 214.3);
 
-  --ring: oklch(0.59 0.24 290);
+  --ring: oklch(0.723 0.014 214.4);
 
   /* ----------------------------------------------------------
      Charts
      ---------------------------------------------------------- */
 
-  --chart-1: oklch(0.59 0.24 290);
-  --chart-2: oklch(0.67 0.18 220);
-  --chart-3: oklch(0.68 0.18 155);
-  --chart-4: oklch(0.75 0.17 85);
-  --chart-5: oklch(0.63 0.22 330);
+  --chart-1: oklch(0.872 0.007 219.6);
+  --chart-2: oklch(0.56 0.021 213.5);
+  --chart-3: oklch(0.45 0.017 213.2);
+  --chart-4: oklch(0.378 0.015 216);
+  --chart-5: oklch(0.275 0.011 216.9);
 
   /* ----------------------------------------------------------
      Sidebar
      ---------------------------------------------------------- */
 
-  --sidebar: oklch(0.17 0.035 270);
-  --sidebar-foreground: oklch(0.94 0.015 260);
+  --sidebar: oklch(0.987 0.002 197.1);
+  --sidebar-foreground: oklch(0.148 0.004 228.8);
 
-  --sidebar-primary: oklch(0.65 0.23 290);
-  --sidebar-primary-foreground: oklch(0.99 0.005 260);
+  --sidebar-primary: oklch(0.218 0.008 223.9);
+  --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
 
-  --sidebar-accent: oklch(0.24 0.045 270);
-  --sidebar-accent-foreground: oklch(0.97 0.01 260);
+  --sidebar-accent: oklch(0.963 0.002 197.1);
+  --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
 
-  --sidebar-border: oklch(0.29 0.035 270);
-  --sidebar-ring: oklch(0.65 0.23 290);
+  --sidebar-border: oklch(0.925 0.005 214.3);
+  --sidebar-ring: oklch(0.723 0.014 214.4);
 
   /* ----------------------------------------------------------
      Typography
@@ -109,7 +107,7 @@
      Shape
      ---------------------------------------------------------- */
 
-  --radius: 0.8rem;
+  --radius: 0.625rem;
 
   /* ----------------------------------------------------------
      Shadows
@@ -158,8 +156,11 @@
   --tracking-normal: -0.015em;
 
   --spacing: 0.25rem;
-}
 
+  --background: oklch(1 0 0);
+
+  --foreground: oklch(0.148 0.004 228.8);
+}
 
 /* ============================================================
    DARK THEME
@@ -170,88 +171,88 @@
      Deep atmospheric background
      ---------------------------------------------------------- */
 
-  --background: oklch(0.105 0.025 275);
-  --foreground: oklch(0.965 0.012 260);
+  --background: oklch(0.148 0.004 228.8);
+  --foreground: oklch(0.987 0.002 197.1);
 
   /* ----------------------------------------------------------
      Glass-like surfaces
      ---------------------------------------------------------- */
 
-  --card: oklch(0.145 0.030 275);
-  --card-foreground: oklch(0.965 0.012 260);
+  --card: oklch(0.218 0.008 223.9);
+  --card-foreground: oklch(0.987 0.002 197.1);
 
-  --popover: oklch(0.155 0.032 275);
-  --popover-foreground: oklch(0.965 0.012 260);
+  --popover: oklch(0.218 0.008 223.9);
+  --popover-foreground: oklch(0.987 0.002 197.1);
 
   /* ----------------------------------------------------------
      Electric Violet
      ---------------------------------------------------------- */
 
-  --primary: oklch(0.68 0.235 292);
-  --primary-foreground: oklch(0.985 0.005 275);
+  --primary: oklch(0.925 0.005 214.3);
+  --primary-foreground: oklch(0.218 0.008 223.9);
 
   /* ----------------------------------------------------------
      Secondary
      ---------------------------------------------------------- */
 
-  --secondary: oklch(0.22 0.035 275);
-  --secondary-foreground: oklch(0.95 0.012 260);
+  --secondary: oklch(0.275 0.011 216.9);
+  --secondary-foreground: oklch(0.987 0.002 197.1);
 
   /* ----------------------------------------------------------
      Muted
      ---------------------------------------------------------- */
 
-  --muted: oklch(0.19 0.030 275);
-  --muted-foreground: oklch(0.70 0.025 270);
+  --muted: oklch(0.275 0.011 216.9);
+  --muted-foreground: oklch(0.723 0.014 214.4);
 
   /* ----------------------------------------------------------
      Cyan Accent
      ---------------------------------------------------------- */
 
-  --accent: oklch(0.24 0.075 220);
-  --accent-foreground: oklch(0.82 0.13 215);
+  --accent: oklch(0.275 0.011 216.9);
+  --accent-foreground: oklch(0.987 0.002 197.1);
 
   /* ----------------------------------------------------------
      Destructive
      ---------------------------------------------------------- */
 
-  --destructive: oklch(0.55 0.20 25);
+  --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.985 0.005 275);
 
   /* ----------------------------------------------------------
      Borders
      ---------------------------------------------------------- */
 
-  --border: oklch(0.28 0.035 275);
-  --input: oklch(0.25 0.032 275);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
 
-  --ring: oklch(0.68 0.235 292);
+  --ring: oklch(0.56 0.021 213.5);
 
   /* ----------------------------------------------------------
      Charts
      ---------------------------------------------------------- */
 
-  --chart-1: oklch(0.68 0.235 292);
-  --chart-2: oklch(0.70 0.18 220);
-  --chart-3: oklch(0.70 0.17 155);
-  --chart-4: oklch(0.78 0.17 85);
-  --chart-5: oklch(0.68 0.21 330);
+  --chart-1: oklch(0.872 0.007 219.6);
+  --chart-2: oklch(0.56 0.021 213.5);
+  --chart-3: oklch(0.45 0.017 213.2);
+  --chart-4: oklch(0.378 0.015 216);
+  --chart-5: oklch(0.275 0.011 216.9);
 
   /* ----------------------------------------------------------
      Sidebar
      ---------------------------------------------------------- */
 
-  --sidebar: oklch(0.075 0.022 275);
-  --sidebar-foreground: oklch(0.95 0.012 260);
+  --sidebar: oklch(0.218 0.008 223.9);
+  --sidebar-foreground: oklch(0.987 0.002 197.1);
 
-  --sidebar-primary: oklch(0.70 0.235 292);
-  --sidebar-primary-foreground: oklch(0.985 0.005 275);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.987 0.002 197.1);
 
-  --sidebar-accent: oklch(0.16 0.032 275);
-  --sidebar-accent-foreground: oklch(0.96 0.012 260);
+  --sidebar-accent: oklch(0.275 0.011 216.9);
+  --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
 
-  --sidebar-border: oklch(0.22 0.030 275);
-  --sidebar-ring: oklch(0.68 0.235 292);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.56 0.021 213.5);
 
   /* ----------------------------------------------------------
      Typography
@@ -307,7 +308,6 @@
   --shadow-2xl:
     0px 35px 80px 0px hsl(260 50% 5% / 0.50);
 }
-
 
 /* ============================================================
    TAILWIND THEME
@@ -384,8 +384,11 @@
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
+  --font-heading: var(--font-sans);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
-
 
 /* ============================================================
    BASE
@@ -398,10 +401,11 @@
 
   html {
     scroll-behavior: smooth;
+    @apply font-sans;
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply antialiased bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
   }
 
@@ -421,7 +425,6 @@
     @apply bg-background;
   }
 }
-
 
 /* ============================================================
    PREMIUM INTERACTION DEFAULTS
@@ -456,7 +459,6 @@
       color-mix(in oklch, var(--ring) 18%, transparent);
   }
 }
-
 
 /* ============================================================
    GLASS SURFACE UTILITY
