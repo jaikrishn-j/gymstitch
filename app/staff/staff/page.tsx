@@ -4,23 +4,34 @@ import { ShieldAlert } from "lucide-react";
 import StaffContent from "./StaffContent";
 
 export default async function StaffStaffPage() {
-  const hasRead = await checkUserRole(PermissionModule.STAFF, "read");
+  const hasRead = await checkUserRole(
+    PermissionModule.STAFF,
+    "read",
+  );
 
   if (!hasRead) {
     return (
       <div className="w-full">
         <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-semibold tracking-tight">Staff</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Staff
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              View and manage gym staff members.
+            </p>
           </div>
-          <div className="flex flex-col items-center justify-center gap-4 rounded-xl border bg-background p-12 shadow-sm">
-            <div className="rounded-full bg-destructive/10 p-4">
-              <ShieldAlert className="h-8 w-8 text-destructive" />
+
+          <div className="flex min-h-72 flex-col items-center justify-center gap-4 rounded-md border p-8 text-center">
+            <div className="rounded-full bg-muted p-3">
+              <ShieldAlert className="h-6 w-6 text-muted-foreground" />
             </div>
-            <div className="text-center">
-              <h2 className="text-lg font-semibold">Access Denied</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                You don&apos;t have permission to view staff. Contact your administrator.
+
+            <div className="max-w-md space-y-1">
+              <h2 className="font-semibold">Access Denied</h2>
+              <p className="text-sm text-muted-foreground">
+                You don&apos;t have permission to view staff.
+                Contact your administrator if you need access.
               </p>
             </div>
           </div>
@@ -29,7 +40,10 @@ export default async function StaffStaffPage() {
     );
   }
 
-  const hasFull = await checkUserRole(PermissionModule.STAFF, "full");
+  const hasFull = await checkUserRole(
+    PermissionModule.STAFF,
+    "full",
+  );
 
   return <StaffContent hasFull={hasFull} />;
 }

@@ -156,6 +156,7 @@ const initialFormData = {
 
 export const AddMember = () => {
   const refresh = useMemberRefresh()
+
   const [currentStep, setCurrentStep] = useState(1)
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -171,20 +172,26 @@ export const AddMember = () => {
   const homeStates = getStatesForCountry(homeCountry)
   const currentStates = getStatesForCountry(currentCountry || homeCountry)
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
+
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
   }
 
   const resetForm = () => {
     setCurrentStep(1)
     setFormData(initialFormData)
-    setHomeState("")
-    setCurrentState("")
-    setCurrentCountry("")
-    setHomeCountry("India")
-    setBloodGroup("")
     setSameAddress(false)
+    setHomeCountry("India")
+    setHomeState("")
+    setCurrentCountry("")
+    setCurrentState("")
+    setBloodGroup("")
   }
 
   const handleNext = () => {
@@ -199,7 +206,9 @@ export const AddMember = () => {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault()
 
     if (currentStep < STEPS.length) {
@@ -213,12 +222,18 @@ export const AddMember = () => {
       ...formData,
       homeCountry,
       homeState,
-      currentCountry: sameAddress ? homeCountry : currentCountry,
-      currentState: sameAddress ? homeState : currentState,
+      currentCountry: sameAddress
+        ? homeCountry
+        : currentCountry,
+      currentState: sameAddress
+        ? homeState
+        : currentState,
       currentStreet: sameAddress
         ? formData.homeStreet
         : formData.currentStreet,
-      currentCity: sameAddress ? formData.homeCity : formData.currentCity,
+      currentCity: sameAddress
+        ? formData.homeCity
+        : formData.currentCity,
       currentPostalCode: sameAddress
         ? formData.homePostalCode
         : formData.currentPostalCode,
@@ -230,11 +245,12 @@ export const AddMember = () => {
 
     try {
       await createMember(payload as any)
+
       setOpen(false)
       resetForm()
       refresh()
-    } catch (error: any) {
-      // Error handling remains delegated to the existing parent/toast flow.
+    } catch {
+      // Error handling remains delegated to the existing flow.
     } finally {
       setLoading(false)
     }
@@ -245,15 +261,18 @@ export const AddMember = () => {
       open={open}
       onOpenChange={(value) => {
         setOpen(value)
-        if (!value) resetForm()
+
+        if (!value) {
+          resetForm()
+        }
       }}
     >
       <DialogTrigger render={<Button>+ New Member</Button>} />
 
-      <DialogContent className="max-h-[calc(100vh-2rem)] sm:max-w-2xl">
+      <DialogContent className="flex max-h-[calc(100vh-2rem)] flex-col sm:max-w-2xl">
         <form
           onSubmit={handleSubmit}
-          className="flex max-h-[calc(100vh-4rem)] flex-col"
+          className="flex min-h-0 flex-1 flex-col"
         >
           <DialogHeader className="shrink-0">
             <DialogTitle>Add New Member</DialogTitle>
@@ -262,7 +281,7 @@ export const AddMember = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="mt-6 min-h-0 overflow-y-auto pr-1">
+          <div className="min-h-0 flex-1 overflow-y-auto py-6 pr-1">
             {/* Step indicator */}
             <div className="flex items-start">
               {STEPS.map((step, index) => {
@@ -301,22 +320,15 @@ export const AddMember = () => {
                     </div>
 
                     {index < STEPS.length - 1 && (
-                      <Separator
-                        className={[
-                          "mx-2 mt-4 flex-1",
-                          currentStep > step.id
-                            ? "bg-primary"
-                            : "bg-border",
-                        ].join(" ")}
-                      />
+                      <Separator className="mx-2 mt-4 flex-1" />
                     )}
                   </div>
                 )
               })}
             </div>
 
-            <div className="mt-6 rounded-lg border bg-card p-5">
-              <div className="mb-5">
+            <div className="mt-6">
+              <div className="mb-6">
                 <p className="text-sm font-medium">
                   Step {currentStep} of {STEPS.length}
                 </p>
@@ -367,7 +379,9 @@ export const AddMember = () => {
                     </Field>
 
                     <Field>
-                      <Label htmlFor="whatsapp">WhatsApp Number</Label>
+                      <Label htmlFor="whatsapp">
+                        WhatsApp Number
+                      </Label>
                       <Input
                         id="whatsapp"
                         name="whatsapp"
@@ -384,8 +398,8 @@ export const AddMember = () => {
               {/* Step 2 */}
               {currentStep === 2 && (
                 <FieldGroup>
-                  <div className="space-y-4">
-                    <div>
+                  <div className="space-y-6">
+                    <div className="space-y-1">
                       <h3 className="text-sm font-medium">
                         Home / Residential Address
                       </h3>
@@ -396,7 +410,9 @@ export const AddMember = () => {
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <Field className="sm:col-span-2">
-                        <Label htmlFor="homeStreet">Street Address</Label>
+                        <Label htmlFor="homeStreet">
+                          Street Address
+                        </Label>
                         <Input
                           id="homeStreet"
                           name="homeStreet"
@@ -421,14 +437,19 @@ export const AddMember = () => {
                         <Label>State</Label>
                         <Select
                           value={homeState}
-                          onValueChange={(value) => setHomeState(value ?? "")}
+                          onValueChange={(value) =>
+                            setHomeState(value ?? "")
+                          }
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select state" />
                           </SelectTrigger>
                           <SelectContent>
                             {homeStates.map((state) => (
-                              <SelectItem key={state} value={state}>
+                              <SelectItem
+                                key={state}
+                                value={state}
+                              >
                                 {state}
                               </SelectItem>
                             ))}
@@ -437,7 +458,9 @@ export const AddMember = () => {
                       </Field>
 
                       <Field>
-                        <Label htmlFor="homePostalCode">Postal Code</Label>
+                        <Label htmlFor="homePostalCode">
+                          Postal Code
+                        </Label>
                         <Input
                           id="homePostalCode"
                           name="homePostalCode"
@@ -489,14 +512,15 @@ export const AddMember = () => {
 
                   <Separator />
 
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="flex items-start justify-between gap-4">
-                      <div>
+                      <div className="space-y-1">
                         <h3 className="text-sm font-medium">
                           Current Living Address
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          The address where the member currently lives.
+                          The address where the member currently
+                          lives.
                         </p>
                       </div>
 
@@ -504,7 +528,9 @@ export const AddMember = () => {
                         <input
                           type="checkbox"
                           checked={sameAddress}
-                          onChange={(e) => setSameAddress(e.target.checked)}
+                          onChange={(e) =>
+                            setSameAddress(e.target.checked)
+                          }
                           className="size-4 rounded border-input"
                         />
                         Same as home
@@ -527,7 +553,9 @@ export const AddMember = () => {
                         </Field>
 
                         <Field>
-                          <Label htmlFor="currentCity">City</Label>
+                          <Label htmlFor="currentCity">
+                            City
+                          </Label>
                           <Input
                             id="currentCity"
                             name="currentCity"
@@ -550,7 +578,10 @@ export const AddMember = () => {
                             </SelectTrigger>
                             <SelectContent>
                               {currentStates.map((state) => (
-                                <SelectItem key={state} value={state}>
+                                <SelectItem
+                                  key={state}
+                                  value={state}
+                                >
                                   {state}
                                 </SelectItem>
                               ))}
@@ -612,9 +643,10 @@ export const AddMember = () => {
                     )}
 
                     {sameAddress && (
-                      <div className="rounded-md border bg-muted/50 p-3 text-sm text-muted-foreground">
-                        The current address will use the home address.
-                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        The current address will use the home
+                        address.
+                      </p>
                     )}
                   </div>
                 </FieldGroup>
@@ -697,7 +729,10 @@ export const AddMember = () => {
                         <SelectContent>
                           {Object.entries(BloodGroup || {}).map(
                             ([key, value]: [string, any]) => (
-                              <SelectItem key={key} value={value}>
+                              <SelectItem
+                                key={key}
+                                value={value}
+                              >
                                 {value}
                               </SelectItem>
                             ),
@@ -711,11 +746,15 @@ export const AddMember = () => {
             </div>
           </div>
 
-          <DialogFooter className="mt-6 shrink-0 flex-row justify-between sm:justify-between">
+          <DialogFooter className="shrink-0 border-t pt-4 sm:justify-between">
             <Button
               type="button"
               variant="outline"
-              onClick={currentStep === 1 ? () => setOpen(false) : handleBack}
+              onClick={
+                currentStep === 1
+                  ? () => setOpen(false)
+                  : handleBack
+              }
             >
               {currentStep === 1 ? "Cancel" : "Back"}
             </Button>
