@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSignIn } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
@@ -30,6 +31,50 @@ import {
 
 type LoginStep = "login" | "verification"
 
+/**
+ * Which Clerk flow produced the current verification step.
+ * `mfa` covers second-factor / Device Trust email codes, `first_factor` covers
+ * a passwordless email-code sign-in.
+ */
+type VerificationMode = "first_factor" | "mfa"
+
+type ClerkFlowError = {
+  longMessage?: string | null
+  message?: string
+} | null | undefined
+
+function resolveClerkError(
+  error: ClerkFlowError,
+  fallback: string
+): string {
+  return error?.longMessage || error?.message || fallback
+}
+
+/**
+ * The signal API resolves with `{ error }` instead of throwing, but network and
+ * runtime failures still reject. Normalise both shapes into one message.
+ */
+function resolveThrownError(
+  error: unknown,
+  fallback: string
+): string {
+  if (typeof error !== "object" || error === null) return fallback
+
+  const candidate = error as {
+    longMessage?: string | null
+    message?: string
+    errors?: ClerkFlowError[] | null
+  }
+
+  return (
+    candidate.longMessage ||
+    candidate.errors?.[0]?.longMessage ||
+    candidate.errors?.[0]?.message ||
+    candidate.message ||
+    fallback
+  )
+}
+
 export function LoginForm({
   className,
   ...props
@@ -43,6 +88,65 @@ export function LoginForm({
   const [code, setCode] = React.useState("")
   const [error, setError] = React.useState("")
   const [loading, setLoading] = React.useState(false)
+  const [verificationMode, setVerificationMode] =
+    React.useState<VerificationMode>("mfa")
+
+  /**
+   * Turns a completed sign-in into an active session. Clerk Core 3 replaced the
+   * legacy `setActive()` helper with `signIn.finalize()`.
+   */
+  const finalizeSignIn = async (): Promise<boolean> => {
+    if (!signIn) return false
+
+    const { error: finalizeError } = await signIn.finalize({
+      navigate: ({ decorateUrl }) => {
+        // `decorateUrl` adds Clerk's Safari ITP refresh state when needed.
+        const url = decorateUrl("/dashboard")
+
+        if (url.startsWith("http")) {
+          window.location.href = url
+        } else {
+          router.push(url)
+        }
+      },
+    })
+
+    if (finalizeError) {
+      setError(
+        resolveClerkError(
+          finalizeError,
+          "Unable to start your session. Please try again."
+        )
+      )
+      return false
+    }
+
+    return true
+  }
+
+  /** Requests a fresh single-use code for the current verification step. */
+  const sendVerificationCode = async (
+    mode: VerificationMode
+  ): Promise<boolean> => {
+    if (!signIn) return false
+
+    const { error: sendError } =
+      mode === "mfa"
+        ? await signIn.mfa.sendEmailCode()
+        : await signIn.emailCode.sendCode()
+
+    if (sendError) {
+      setError(
+        resolveClerkError(
+          sendError,
+          "Unable to send a verification code."
+        )
+      )
+      return false
+    }
+
+    return true
+  }
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -53,38 +157,76 @@ export function LoginForm({
     setError("")
 
     try {
-      await signIn.password({ identifier: email, password })
+      // Password sign-in goes through `signIn.password()` in Clerk Core 3.
+      // `signIn.create()` now only accepts OAuth / enterprise SSO / passkey /
+      // ticket strategies.
+      const { error: passwordError } = await signIn.password({
+        identifier: email,
+        password,
+      })
 
-      if (signIn.status === "complete") {
-        await signIn.finalize()
-        router.push("/dashboard")
+      if (passwordError) {
+        setError(
+          resolveClerkError(
+            passwordError,
+            "Unable to sign in. Please check your credentials."
+          )
+        )
         return
       }
 
-      if (
-        signIn.status === "needs_first_factor" ||
-        signIn.status === "needs_second_factor"
-      ) {
-        const verification = signIn.firstFactorVerification
-        if (verification?.status === "expired") {
-          await signIn.prepareFirstFactorVerification({
-            strategy: "email_code",
-            emailAddressId: verification.emailAddressId,
-          })
-        } else if (verification?.status !== "verified") {
-          await signIn.prepareFirstFactorVerification({
-            strategy: "email_code",
-          })
-        }
-        setStep("verification")
+      if (signIn.status === "complete") {
+        await finalizeSignIn()
+        return
       }
-    } catch (err: any) {
-      const clerkError = err?.errors?.[0]
 
+      // Device Trust (enabled by default) asks for a second factor code.
+      if (signIn.status === "needs_client_trust") {
+        setVerificationMode("mfa")
+
+        if (await sendVerificationCode("mfa")) {
+          setStep("verification")
+        }
+        return
+      }
+
+      if (signIn.status === "needs_second_factor") {
+        const emailCodeFactor = signIn.supportedSecondFactors.find(
+          (factor) => factor.strategy === "email_code"
+        )
+
+        if (!emailCodeFactor) {
+          setError(
+            "This account uses an MFA method that isn't supported in this form yet."
+          )
+          return
+        }
+
+        setVerificationMode("mfa")
+
+        if (await sendVerificationCode("mfa")) {
+          setStep("verification")
+        }
+        return
+      }
+
+      // Only reachable for passwordless email-code sign-in.
+      if (signIn.status === "needs_first_factor") {
+        setVerificationMode("first_factor")
+
+        if (await sendVerificationCode("first_factor")) {
+          setStep("verification")
+        }
+        return
+      }
+
+      setError("Unable to complete sign in. Please try again.")
+    } catch (err: unknown) {
       setError(
-        clerkError?.longMessage ||
-          clerkError?.message ||
+        resolveThrownError(
+          err,
           "Unable to sign in. Please check your credentials."
+        )
       )
     } finally {
       setLoading(false)
@@ -98,17 +240,21 @@ export function LoginForm({
     setError("")
 
     try {
-      await signIn.sso({
+      const { error: ssoError } = await signIn.sso({
         strategy: "oauth_google",
         redirectUrl: "/login/sso-callback",
         redirectCallbackUrl: "/dashboard",
       })
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ||
-          err?.errors?.[0]?.message ||
-          "Unable to continue with Google."
-      )
+
+      // On success the browser leaves the page, so keep the loading state on.
+      if (ssoError) {
+        setError(
+          resolveClerkError(ssoError, "Unable to continue with Google.")
+        )
+        setLoading(false)
+      }
+    } catch (err: unknown) {
+      setError(resolveThrownError(err, "Unable to continue with Google."))
       setLoading(false)
     }
   }
@@ -124,21 +270,26 @@ export function LoginForm({
     setError("")
 
     try {
-      await signIn.attemptFirstFactorVerification({
-        strategy: "email_code",
-        code,
-      })
+      const { error: verifyError } =
+        verificationMode === "mfa"
+          ? await signIn.mfa.verifyEmailCode({ code })
+          : await signIn.emailCode.verifyCode({ code })
+
+      if (verifyError) {
+        setError(
+          resolveClerkError(verifyError, "Invalid verification code.")
+        )
+        return
+      }
 
       if (signIn.status === "complete") {
-        await signIn.finalize()
-        router.push("/dashboard")
+        await finalizeSignIn()
+        return
       }
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ||
-          err?.errors?.[0]?.message ||
-          "Invalid verification code."
-      )
+
+      setError("Verification is incomplete. Please try again.")
+    } catch (err: unknown) {
+      setError(resolveThrownError(err, "Invalid verification code."))
     } finally {
       setLoading(false)
     }
@@ -217,10 +368,11 @@ export function LoginForm({
                       setCode("")
                       setError("")
                       if (!signIn) return
+
                       try {
-                        await signIn.prepareFirstFactorVerification({
-                          strategy: "email_code",
-                        })
+                        await sendVerificationCode(
+                          verificationMode
+                        )
                       } catch {
                         setError(
                           "Unable to resend code. Please try again."
@@ -335,12 +487,12 @@ export function LoginForm({
 
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
-                  <a
+                  <Link
                     href="/register"
                     className="underline underline-offset-4 hover:no-underline"
                   >
                     Sign up
-                  </a>
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>

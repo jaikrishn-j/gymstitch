@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSignUp } from "@clerk/nextjs"
 import { cn } from "@/lib/utils"
@@ -30,6 +31,43 @@ import {
 
 type RegisterStep = "register" | "verification"
 
+type ClerkFlowError = {
+  longMessage?: string | null
+  message?: string
+} | null | undefined
+
+function resolveClerkError(
+  error: ClerkFlowError,
+  fallback: string
+): string {
+  return error?.longMessage || error?.message || fallback
+}
+
+/**
+ * The signal API resolves with `{ error }` instead of throwing, but network and
+ * runtime failures still reject. Normalise both shapes into one message.
+ */
+function resolveThrownError(
+  error: unknown,
+  fallback: string
+): string {
+  if (typeof error !== "object" || error === null) return fallback
+
+  const candidate = error as {
+    longMessage?: string | null
+    message?: string
+    errors?: ClerkFlowError[] | null
+  }
+
+  return (
+    candidate.longMessage ||
+    candidate.errors?.[0]?.longMessage ||
+    candidate.errors?.[0]?.message ||
+    candidate.message ||
+    fallback
+  )
+}
+
 export function RegisterForm({
   className,
   ...props
@@ -46,6 +84,39 @@ export function RegisterForm({
   const [error, setError] = React.useState("")
   const [loading, setLoading] = React.useState(false)
 
+  /**
+   * Turns a completed sign-up into an active session. Clerk Core 3 replaced the
+   * legacy `setActive()` helper with `signUp.finalize()`.
+   */
+  const finalizeSignUp = async (): Promise<boolean> => {
+    if (!signUp) return false
+
+    const { error: finalizeError } = await signUp.finalize({
+      navigate: ({ decorateUrl }) => {
+        // `decorateUrl` adds Clerk's Safari ITP refresh state when needed.
+        const url = decorateUrl("/onboarding")
+
+        if (url.startsWith("http")) {
+          window.location.href = url
+        } else {
+          router.push(url)
+        }
+      },
+    })
+
+    if (finalizeError) {
+      setError(
+        resolveClerkError(
+          finalizeError,
+          "Unable to start your session. Please try again."
+        )
+      )
+      return false
+    }
+
+    return true
+  }
+
   const handleRegister = async (
     e: React.FormEvent<HTMLFormElement>
   ) => {
@@ -57,20 +128,38 @@ export function RegisterForm({
     setError("")
 
     try {
-      await signUp.create({
+      // Sign-up goes through `signUp.password()` in Clerk Core 3.
+      const { error: passwordError } = await signUp.password({
         emailAddress: email,
         password,
       })
 
-      await signUp.verifications.sendEmailCode()
+      if (passwordError) {
+        setError(
+          resolveClerkError(
+            passwordError,
+            "Unable to create your account."
+          )
+        )
+        return
+      }
+
+      const { error: sendError } =
+        await signUp.verifications.sendEmailCode()
+
+      if (sendError) {
+        setError(
+          resolveClerkError(
+            sendError,
+            "Unable to send a verification code."
+          )
+        )
+        return
+      }
 
       setStep("verification")
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ||
-          err?.errors?.[0]?.message ||
-          "Unable to create your account."
-      )
+    } catch (err: unknown) {
+      setError(resolveThrownError(err, "Unable to create your account."))
     } finally {
       setLoading(false)
     }
@@ -87,21 +176,26 @@ export function RegisterForm({
     setError("")
 
     try {
-      await signUp.verifications.verifyEmailCode({
-        code,
-      })
+      const { error: verifyError } =
+        await signUp.verifications.verifyEmailCode({
+          code,
+        })
+
+      if (verifyError) {
+        setError(
+          resolveClerkError(verifyError, "Invalid verification code.")
+        )
+        return
+      }
 
       if (signUp.status === "complete") {
-        await signUp.finalize()
-
-        router.push("/onboarding")
+        await finalizeSignUp()
+        return
       }
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ||
-          err?.errors?.[0]?.message ||
-          "Invalid verification code."
-      )
+
+      setError("Verification is incomplete. Please try again.")
+    } catch (err: unknown) {
+      setError(resolveThrownError(err, "Invalid verification code."))
     } finally {
       setLoading(false)
     }
@@ -114,17 +208,21 @@ export function RegisterForm({
     setError("")
 
     try {
-      await signUp.sso({
+      const { error: ssoError } = await signUp.sso({
         strategy: "oauth_google",
         redirectUrl: "/register/sso-callback",
         redirectCallbackUrl: "/dashboard",
       })
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ||
-          err?.errors?.[0]?.message ||
-          "Unable to continue with Google."
-      )
+
+      // On success the browser leaves the page, so keep the loading state on.
+      if (ssoError) {
+        setError(
+          resolveClerkError(ssoError, "Unable to continue with Google.")
+        )
+        setLoading(false)
+      }
+    } catch (err: unknown) {
+      setError(resolveThrownError(err, "Unable to continue with Google."))
       setLoading(false)
     }
   }
@@ -305,12 +403,12 @@ export function RegisterForm({
 
                 <FieldDescription className="text-center">
                   Already have an account?{" "}
-                  <a
+                  <Link
                     href="/login"
                     className="underline underline-offset-4 hover:no-underline"
                   >
                     Login
-                  </a>
+                  </Link>
                 </FieldDescription>
               </Field>
             </FieldGroup>

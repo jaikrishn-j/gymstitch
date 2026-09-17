@@ -21,7 +21,13 @@ type Props = {
 };
 
 const Layout = async ({ children }: Props) => {
-    await redirectByRole("", [UserRole.MEMBER]);
+    // All roles are allowed through the gate so `redirectByRole` can dispatch
+    // admins/staff to their own dashboards instead of rejecting them.
+    await redirectByRole("", [
+        UserRole.MEMBER,
+        UserRole.ADMIN,
+        UserRole.STAFF,
+    ]);
 
     return (
         <SidebarProvider>

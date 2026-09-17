@@ -29,6 +29,43 @@ import {
 
 type ForgotPasswordStep = "email" | "otp" | "password" | "success"
 
+type ClerkFlowError = {
+  longMessage?: string | null
+  message?: string
+} | null | undefined
+
+function resolveClerkError(
+  error: ClerkFlowError,
+  fallback: string
+): string {
+  return error?.longMessage || error?.message || fallback
+}
+
+/**
+ * The signal API resolves with `{ error }` instead of throwing, but network and
+ * runtime failures still reject. Normalise both shapes into one message.
+ */
+function resolveThrownError(
+  error: unknown,
+  fallback: string
+): string {
+  if (typeof error !== "object" || error === null) return fallback
+
+  const candidate = error as {
+    longMessage?: string | null
+    message?: string
+    errors?: ClerkFlowError[] | null
+  }
+
+  return (
+    candidate.longMessage ||
+    candidate.errors?.[0]?.longMessage ||
+    candidate.errors?.[0]?.message ||
+    candidate.message ||
+    fallback
+  )
+}
+
 export function ForgotPasswordForm({
   className,
   ...props
@@ -57,14 +94,40 @@ export function ForgotPasswordForm({
     setError("")
 
     try {
-      await signIn.create({ identifier: email })
-      await signIn.resetPasswordEmailCode.sendCode()
+      const { error: createError } = await signIn.create({
+        identifier: email,
+      })
+
+      if (createError) {
+        setError(
+          resolveClerkError(
+            createError,
+            "Unable to send reset code. Please try again."
+          )
+        )
+        return
+      }
+
+      const { error: sendError } =
+        await signIn.resetPasswordEmailCode.sendCode()
+
+      if (sendError) {
+        setError(
+          resolveClerkError(
+            sendError,
+            "Unable to send reset code. Please try again."
+          )
+        )
+        return
+      }
+
       setStep("otp")
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(
-        err?.errors?.[0]?.longMessage ||
-          err?.errors?.[0]?.message ||
+        resolveThrownError(
+          err,
           "Unable to send reset code. Please try again."
+        )
       )
     } finally {
       setLoading(false)
@@ -82,19 +145,26 @@ export function ForgotPasswordForm({
     setError("")
 
     try {
-      await signIn.resetPasswordEmailCode.verifyCode({
-        code,
-      })
+      const { error: verifyError } =
+        await signIn.resetPasswordEmailCode.verifyCode({
+          code,
+        })
+
+      if (verifyError) {
+        setError(
+          resolveClerkError(verifyError, "Invalid verification code.")
+        )
+        return
+      }
 
       if (signIn.status === "needs_new_password") {
         setStep("password")
+        return
       }
-    } catch (err: any) {
-      setError(
-        err?.errors?.[0]?.longMessage ||
-          err?.errors?.[0]?.message ||
-          "Invalid verification code."
-      )
+
+      setError("Verification is incomplete. Please try again.")
+    } catch (err: unknown) {
+      setError(resolveThrownError(err, "Invalid verification code."))
     } finally {
       setLoading(false)
     }
@@ -121,18 +191,53 @@ export function ForgotPasswordForm({
     setError("")
 
     try {
-      await signIn.resetPasswordEmailCode.submitPassword({
-        password,
-        signOutOfOtherSessions: true,
-      })
+      const { error: submitError } =
+        await signIn.resetPasswordEmailCode.submitPassword({
+          password,
+          signOutOfOtherSessions: true,
+        })
 
-      await signIn.finalize()
+      if (submitError) {
+        setError(
+          resolveClerkError(
+            submitError,
+            "Unable to reset password. Please try again."
+          )
+        )
+        return
+      }
+
+      // The password change only becomes an active session after finalize(),
+      // which also navigates the user into the app.
+      if (signIn.status === "complete") {
+        const { error: finalizeError } = await signIn.finalize({
+          navigate: ({ decorateUrl }) => {
+            const url = decorateUrl("/dashboard")
+
+            if (url.startsWith("http")) {
+              window.location.href = url
+            } else {
+              router.push(url)
+            }
+          },
+        })
+
+        if (finalizeError) {
+          // The password itself was changed, so still confirm it and send the
+          // user back to the login screen.
+          setStep("success")
+        }
+
+        return
+      }
+
       setStep("success")
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(
-        err?.errors?.[0]?.longMessage ||
-          err?.errors?.[0]?.message ||
+        resolveThrownError(
+          err,
           "Unable to reset password. Please try again."
+        )
       )
     } finally {
       setLoading(false)
@@ -208,9 +313,29 @@ export function ForgotPasswordForm({
                   <button
                     type="button"
                     className="underline underline-offset-4 hover:no-underline"
-                    onClick={() => {
+                    onClick={async () => {
                       setCode("")
                       setError("")
+
+                      if (!signIn) return
+
+                      try {
+                        const { error: resendError } =
+                          await signIn.resetPasswordEmailCode.sendCode()
+
+                        if (resendError) {
+                          setError(
+                            resolveClerkError(
+                              resendError,
+                              "Unable to resend code. Please try again."
+                            )
+                          )
+                        }
+                      } catch {
+                        setError(
+                          "Unable to resend code. Please try again."
+                        )
+                      }
                     }}
                   >
                     Try again

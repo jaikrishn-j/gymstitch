@@ -1,7 +1,7 @@
 import { UserProfile, UserRole } from "@/types";
 import { PermissionLevel, PermissionModule } from "@/types/permissions";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { redirect, RedirectType } from "next/navigation";
+import { notFound, redirect, RedirectType } from "next/navigation";
 
 export async function checkUserType(
     allowedRoles: UserRole[], 
@@ -36,9 +36,10 @@ export async function checkUserType(
         console.log("noRedirect:", noRedirect);
 
         if (noRedirect) return null;
-        console.log("🚨 ABOUT TO REDIRECT TO /404");
+        console.log("🚨 ROLE NOT ALLOWED, RENDERING 404");
 
-        redirect("/404", RedirectType.replace); // Next.js redirect halts execution completely
+        // There is no `/404` route; `notFound()` renders `app/not-found.tsx`.
+        notFound();
     }
 
     return {
@@ -57,13 +58,13 @@ export async function redirectByRole(currentPath:string,allowedRoles: UserRole[]
         if(currentPath.startsWith("/admin")){
             return user;
         }
-        return redirect("/admin/dashboard", RedirectType.replace)
+        return redirect("/admin", RedirectType.replace)
     }
     if(user?.role === UserRole.STAFF){
         if(currentPath.startsWith("/staff")){
             return user;
         }
-        return redirect("/staff/dashboard", RedirectType.replace)
+        return redirect("/staff", RedirectType.replace)
     }
     if(user?.role === UserRole.MEMBER){
         const client = await clerkClient()
@@ -147,11 +148,11 @@ export async function redirectAuthenticatedUser() {
     }
 
     if (user.role === UserRole.ADMIN) {
-        redirect("/admin/dashboard", RedirectType.replace);
+        redirect("/admin", RedirectType.replace);
     }
 
     if (user.role === UserRole.STAFF) {
-        redirect("/staff/dashboard", RedirectType.replace);
+        redirect("/staff", RedirectType.replace);
     }
 
     if (user.role === UserRole.MEMBER) {
