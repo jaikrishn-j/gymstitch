@@ -11,17 +11,17 @@ import {
 } from "@tanstack/react-table";
 
 import {
+  ArrowUpDown,
+  Check,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Copy,
+  Eye,
+  MoreHorizontal,
   Search,
   SlidersHorizontal,
-  ArrowUpDown,
-  MoreHorizontal,
-  Eye,
-  Copy,
-  Check,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,10 +35,10 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -56,6 +56,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
 
 import { fetchPayments } from "@/app/admin/payment/actions";
 import { type Payment } from "@/app/admin/payment/columns";
@@ -70,7 +75,11 @@ interface PaymentContentProps {
   hasFull: boolean;
 }
 
-function PaymentActionsReadonly({ payment }: { payment: Payment }) {
+function PaymentActionsReadonly({
+  payment,
+}: {
+  payment: Payment;
+}) {
   const [viewOpen, setViewOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
@@ -85,14 +94,18 @@ function PaymentActionsReadonly({ payment }: { payment: Payment }) {
       <DropdownMenu>
         <DropdownMenuTrigger
           render={
-            <Button variant="ghost" size="icon" className="h-8 w-8" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+            />
           }
         >
           <span className="sr-only">Open actions</span>
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleCopyId}>
             {copied ? (
               <Check className="mr-2 h-4 w-4" />
@@ -109,221 +122,310 @@ function PaymentActionsReadonly({ payment }: { payment: Payment }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-xl">Payment Details</DialogTitle>
-            <DialogDescription>
-              View information for payment #{payment.id}.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            {/* Amount & Status */}
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Payment Amount</p>
-                <p className="text-2xl font-bold tracking-tight">
-                  ₹{Number(payment.amount).toLocaleString("en-IN")}
-                </p>
-              </div>
-
-              <Badge
-                variant={
-                  payment.status === "SUCCESS"
-                    ? "default"
-                    : payment.status === "PENDING"
-                      ? "secondary"
-                      : "destructive"
-                }
-              >
-                {payment.status}
-              </Badge>
-            </div>
-
-            {/* Payment Information */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold">Payment Information</h3>
-                <p className="text-sm text-muted-foreground">
-                  Transaction and membership details
-                </p>
-              </div>
-
-              <div className="grid gap-4 rounded-lg border p-4">
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Payment ID</Label>
-                  <p className="font-mono text-xs break-all">{payment.id}</p>
-                </div>
-
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Plan</Label>
-                  <div>
-                    {payment.planName ? (
-                      <Badge variant="secondary">{payment.planName}</Badge>
-                    ) : (
-                      <Badge variant="outline">Registration</Badge>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-muted-foreground">Payment Method</Label>
-                    <p className="text-sm font-medium capitalize">
-                      {payment.paymentMethod}
-                    </p>
-                  </div>
-
-                  <div className="space-y-1 text-right">
-                    <Label className="text-muted-foreground">Date</Label>
-                    <p className="text-sm font-medium">
-                      {new Date(payment.paidAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* User */}
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold">Member</h3>
-                <p className="text-sm text-muted-foreground">
-                  Account associated with this payment
-                </p>
-              </div>
-
-              <div className="rounded-lg border p-4">
-                <p className="text-lg font-semibold">{payment.userName}</p>
-                <p className="text-sm text-muted-foreground break-all">
-                  {payment.userEmail}
-                </p>
-              </div>
-            </div>
-
-            {/* Description */}
-            {payment.description && (
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Description</Label>
-                <div className="rounded-lg border bg-muted/50 p-3">
-                  <p className="text-sm">{payment.description}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <PaymentDetailsDialog
+        payment={payment}
+        open={viewOpen}
+        onOpenChange={setViewOpen}
+      />
     </>
   );
 }
 
-function PaymentActionsFull({ payment }: { payment: Payment }) {
+function PaymentDetailsDialog({
+  payment,
+  open,
+  onOpenChange,
+}: {
+  payment: Payment;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const statusVariant =
+    payment.status === "SUCCESS"
+      ? "default"
+      : payment.status === "PENDING"
+        ? "secondary"
+        : "destructive";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Payment Details</DialogTitle>
+          <DialogDescription>
+            View information for payment #{payment.id}.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          <div className="flex items-center justify-between gap-4 rounded-md border p-4">
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Payment Amount
+              </p>
+              <p className="text-2xl font-semibold tracking-tight">
+                ₹{Number(payment.amount).toLocaleString("en-IN")}
+              </p>
+            </div>
+
+            <Badge variant={statusVariant}>
+              {payment.status}
+            </Badge>
+          </div>
+
+          <section className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">
+                Payment Information
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Transaction and membership details.
+              </p>
+            </div>
+
+            <div className="grid gap-4 rounded-md border p-4">
+              <div className="space-y-1">
+                <Label className="text-muted-foreground">
+                  Payment ID
+                </Label>
+                <p className="break-all font-mono text-xs">
+                  {payment.id}
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-muted-foreground">
+                  Plan
+                </Label>
+                {payment.planName ? (
+                  <Badge variant="secondary">
+                    {payment.planName}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">
+                    Registration
+                  </Badge>
+                )}
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground">
+                    Payment Method
+                  </Label>
+                  <p className="text-sm font-medium capitalize">
+                    {payment.paymentMethod}
+                  </p>
+                </div>
+
+                <div className="space-y-1 sm:text-right">
+                  <Label className="text-muted-foreground">
+                    Date
+                  </Label>
+                  <p className="text-sm font-medium">
+                    {new Date(
+                      payment.paidAt,
+                    ).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold">
+                Member
+              </h3>
+              <p className="text-sm text-muted-foreground">
+                Account associated with this payment.
+              </p>
+            </div>
+
+            <div className="rounded-md border p-4">
+              <p className="font-medium">{payment.userName}</p>
+              <p className="break-all text-sm text-muted-foreground">
+                {payment.userEmail}
+              </p>
+            </div>
+          </section>
+
+          {payment.description && (
+            <div className="space-y-2">
+              <Label className="text-muted-foreground">
+                Description
+              </Label>
+              <div className="rounded-md border bg-muted/30 p-3">
+                <p className="text-sm">{payment.description}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
+            Close
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function PaymentActionsFull({
+  payment,
+}: {
+  payment: Payment;
+}) {
   return <PaymentActionsReadonly payment={payment} />;
 }
 
-function useReadonlyColumns(): ColumnDef<DataTableFeatures, Payment>[] {
+function PaymentUserCell({
+  payment,
+}: {
+  payment: Payment;
+}) {
+  const initials = payment.userName
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="flex min-w-[180px] items-center gap-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
+        {initials}
+      </div>
+
+      <div className="min-w-0">
+        <p className="truncate font-medium">
+          {payment.userName}
+        </p>
+        <p className="truncate text-xs text-muted-foreground">
+          {payment.userEmail}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SortableHeader({
+  column,
+  children,
+}: {
+  column: {
+    toggleSorting: (desc?: boolean) => void;
+    getIsSorted: () => false | "asc" | "desc";
+  };
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      className="-ml-2 h-8 px-2"
+      onClick={() =>
+        column.toggleSorting(column.getIsSorted() === "asc")
+      }
+    >
+      {children}
+      <ArrowUpDown className="ml-2 h-4 w-4" />
+    </Button>
+  );
+}
+
+function StatusBadge({
+  status,
+}: {
+  status: Payment["status"];
+}) {
+  const variant =
+    status === "SUCCESS"
+      ? "default"
+      : status === "PENDING"
+        ? "secondary"
+        : "destructive";
+
+  return (
+    <Badge variant={variant} className="font-normal">
+      {status}
+    </Badge>
+  );
+}
+
+function PlanBadge({
+  planName,
+}: {
+  planName: Payment["planName"];
+}) {
+  return planName ? (
+    <Badge variant="secondary" className="font-normal">
+      {planName}
+    </Badge>
+  ) : (
+    <Badge variant="outline">Registration</Badge>
+  );
+}
+
+function useReadonlyColumns(): ColumnDef<
+  DataTableFeatures,
+  Payment
+>[] {
   return React.useMemo(
     () => [
       {
         id: "userName",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
+          <SortableHeader column={column}>
             User
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          </SortableHeader>
         ),
         accessorFn: (row) => row.userName,
-        cell: ({ row }) => {
-          const name = row.original.userName;
-          const initials = name
-            .split(" ")
-            .map((part) => part[0])
-            .slice(0, 2)
-            .join("")
-            .toUpperCase();
-
-          return (
-            <div className="flex min-w-[180px] items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                {initials}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-medium">{name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {row.original.userEmail}
-                </p>
-              </div>
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <PaymentUserCell payment={row.original} />
+        ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "amount",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
+          <SortableHeader column={column}>
             Amount
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          </SortableHeader>
         ),
         accessorFn: (row) => row.amount,
         cell: ({ row }) => (
           <span className="font-medium">
-            ₹{Number(row.original.amount).toLocaleString("en-IN")}
+            ₹
+            {Number(row.original.amount).toLocaleString(
+              "en-IN",
+            )}
           </span>
         ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "planName",
         header: "Plan",
         accessorFn: (row) => row.planName ?? "",
-        cell: ({ row }) => {
-          const planName = row.original.planName;
-          if (!planName) {
-            return <Badge variant="outline">Registration</Badge>;
-          }
-          return (
-            <Badge variant="secondary" className="font-normal">
-              {planName}
-            </Badge>
-          );
-        },
+        cell: ({ row }) => (
+          <PlanBadge planName={row.original.planName} />
+        ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "paymentMethod",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
+          <SortableHeader column={column}>
             Method
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          </SortableHeader>
         ),
         accessorFn: (row) => row.paymentMethod,
         cell: ({ row }) => (
@@ -332,43 +434,29 @@ function useReadonlyColumns(): ColumnDef<DataTableFeatures, Payment>[] {
           </span>
         ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "status",
         header: "Status",
         accessorFn: (row) => row.status,
-        cell: ({ row }) => {
-          const status = row.original.status;
-          const variant =
-            status === "SUCCESS"
-              ? ("default" as const)
-              : status === "PENDING"
-                ? ("secondary" as const)
-                : ("destructive" as const);
-          return (
-            <Badge variant={variant} className="font-normal">
-              {status}
-            </Badge>
-          );
-        },
+        cell: ({ row }) => (
+          <StatusBadge status={row.original.status} />
+        ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "paidAt",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
+          <SortableHeader column={column}>
             Date
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          </SortableHeader>
         ),
         accessorFn: (row) => row.paidAt,
         cell: ({ row }) => (
           <span className="text-muted-foreground">
-            {new Date(row.original.paidAt).toLocaleDateString("en-IN", {
+            {new Date(
+              row.original.paidAt,
+            ).toLocaleDateString("en-IN", {
               day: "numeric",
               month: "short",
               year: "numeric",
@@ -376,24 +464,27 @@ function useReadonlyColumns(): ColumnDef<DataTableFeatures, Payment>[] {
           </span>
         ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "actions",
         enableHiding: false,
-        cell: ({ row }) => {
-          const payment = row.original;
-          return (
-            <div className="flex justify-end">
-              <PaymentActionsReadonly payment={payment} />
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <PaymentActionsReadonly
+              payment={row.original}
+            />
+          </div>
+        ),
       } as ColumnDef<DataTableFeatures, Payment>,
     ],
-    []
+    [],
   );
 }
 
-function useFullColumns(): ColumnDef<DataTableFeatures, Payment>[] {
+function useFullColumns(): ColumnDef<
+  DataTableFeatures,
+  Payment
+>[] {
   return React.useMemo(
     () => [
       {
@@ -401,113 +492,71 @@ function useFullColumns(): ColumnDef<DataTableFeatures, Payment>[] {
         header: ({ table }) => (
           <Checkbox
             checked={table.getIsAllPageRowsSelected()}
-            onCheckedChange={(value) => {
-              table.toggleAllPageRowsSelected(!!value);
-            }}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
             aria-label="Select all rows"
           />
         ),
         cell: ({ row }) => (
           <Checkbox
             checked={row.getIsSelected()}
-            onCheckedChange={(value) => {
-              row.toggleSelected(!!value);
-            }}
+            onCheckedChange={(value) =>
+              row.toggleSelected(!!value)
+            }
             aria-label={`Select payment ${row.original.id}`}
           />
         ),
         enableSorting: false,
         enableHiding: false,
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "userName",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
+          <SortableHeader column={column}>
             User
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          </SortableHeader>
         ),
         accessorFn: (row) => row.userName,
-        cell: ({ row }) => {
-          const name = row.original.userName;
-          const initials = name
-            .split(" ")
-            .map((part) => part[0])
-            .slice(0, 2)
-            .join("")
-            .toUpperCase();
-
-          return (
-            <div className="flex min-w-[180px] items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                {initials}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-medium">{name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {row.original.userEmail}
-                </p>
-              </div>
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <PaymentUserCell payment={row.original} />
+        ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "amount",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
+          <SortableHeader column={column}>
             Amount
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          </SortableHeader>
         ),
         accessorFn: (row) => row.amount,
         cell: ({ row }) => (
           <span className="font-medium">
-            ₹{Number(row.original.amount).toLocaleString("en-IN")}
+            ₹
+            {Number(row.original.amount).toLocaleString(
+              "en-IN",
+            )}
           </span>
         ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "planName",
         header: "Plan",
         accessorFn: (row) => row.planName ?? "",
-        cell: ({ row }) => {
-          const planName = row.original.planName;
-          if (!planName) {
-            return <Badge variant="outline">Registration</Badge>;
-          }
-          return (
-            <Badge variant="secondary" className="font-normal">
-              {planName}
-            </Badge>
-          );
-        },
+        cell: ({ row }) => (
+          <PlanBadge planName={row.original.planName} />
+        ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "paymentMethod",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
+          <SortableHeader column={column}>
             Method
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          </SortableHeader>
         ),
         accessorFn: (row) => row.paymentMethod,
         cell: ({ row }) => (
@@ -516,43 +565,29 @@ function useFullColumns(): ColumnDef<DataTableFeatures, Payment>[] {
           </span>
         ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "status",
         header: "Status",
         accessorFn: (row) => row.status,
-        cell: ({ row }) => {
-          const status = row.original.status;
-          const variant =
-            status === "SUCCESS"
-              ? ("default" as const)
-              : status === "PENDING"
-                ? ("secondary" as const)
-                : ("destructive" as const);
-          return (
-            <Badge variant={variant} className="font-normal">
-              {status}
-            </Badge>
-          );
-        },
+        cell: ({ row }) => (
+          <StatusBadge status={row.original.status} />
+        ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "paidAt",
         header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
+          <SortableHeader column={column}>
             Date
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
+          </SortableHeader>
         ),
         accessorFn: (row) => row.paidAt,
         cell: ({ row }) => (
           <span className="text-muted-foreground">
-            {new Date(row.original.paidAt).toLocaleDateString("en-IN", {
+            {new Date(
+              row.original.paidAt,
+            ).toLocaleDateString("en-IN", {
               day: "numeric",
               month: "short",
               year: "numeric",
@@ -560,20 +595,20 @@ function useFullColumns(): ColumnDef<DataTableFeatures, Payment>[] {
           </span>
         ),
       } as ColumnDef<DataTableFeatures, Payment>,
+
       {
         id: "actions",
         enableHiding: false,
-        cell: ({ row }) => {
-          const payment = row.original;
-          return (
-            <div className="flex justify-end">
-              <PaymentActionsFull payment={payment} />
-            </div>
-          );
-        },
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <PaymentActionsFull
+              payment={row.original}
+            />
+          </div>
+        ),
       } as ColumnDef<DataTableFeatures, Payment>,
     ],
-    []
+    [],
   );
 }
 
@@ -586,16 +621,18 @@ function PaymentDataTable({
   data: Payment[];
   hasFull: boolean;
 }) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] =
+    React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<ColumnVisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [pagination, setPagination] =
+    React.useState<PaginationState>({
+      pageIndex: 0,
+      pageSize: 10,
+    });
 
   const table = useTable({
     features,
@@ -622,10 +659,10 @@ function PaymentDataTable({
 
   return (
     <div className="w-full space-y-4">
-      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
           <Input
             placeholder="Search payments..."
             value={
@@ -637,6 +674,7 @@ function PaymentDataTable({
               table
                 .getColumn("userName")
                 ?.setFilterValue(event.target.value);
+
               setPagination((previous) => ({
                 ...previous,
                 pageIndex: 0,
@@ -663,61 +701,70 @@ function PaymentDataTable({
               }
             >
               <SlidersHorizontal className="h-4 w-4" />
-              <span className="hidden sm:inline">Columns</span>
+              <span className="hidden sm:inline">
+                Columns
+              </span>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {table
-                  .getAllColumns()
-                  .filter(
-                    (column) =>
-                      typeof column.accessorFn !== "undefined" &&
-                      column.getCanHide()
-                  )
-                  .map((column) => (
-                    <DropdownMenuCheckboxItem
-                      key={column.id}
-                      checked={column.getIsVisible()}
-                      onCheckedChange={(value) =>
-                        column.toggleVisibility(!!value)
-                      }
-                      className="capitalize"
-                    >
-                      {column.id}
-                    </DropdownMenuCheckboxItem>
-                  ))}
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <DropdownMenuContent align="end">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                Toggle columns
+              </DropdownMenuLabel>
 
-          {hasFull && <AddPayment />}
-        </div>
+              <DropdownMenuSeparator />
+
+              {table
+                .getAllColumns()
+                .filter(
+                  (column) =>
+                    typeof column.accessorFn !==
+                      "undefined" &&
+                    column.getCanHide(),
+                )
+                .map((column) => (
+                  <DropdownMenuCheckboxItem
+                    key={column.id}
+                    checked={column.getIsVisible()}
+                    onCheckedChange={(value) =>
+                      column.toggleVisibility(!!value)
+                    }
+                    className="capitalize"
+                  >
+                    {column.id}
+                  </DropdownMenuCheckboxItem>
+                ))}
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {hasFull && <AddPayment />}
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border bg-background shadow-sm">
+      <div className="overflow-hidden rounded-md border">
         <div className="w-full overflow-x-auto">
           <Table>
             <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className="whitespace-nowrap"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : (
-                            <table.FlexRender header={header} />
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
+              {table.getHeaderGroups().map(
+                (headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        className="whitespace-nowrap"
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : (
+                              <table.FlexRender
+                                header={header}
+                              />
+                            )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ),
+              )}
             </TableHeader>
 
             <TableBody>
@@ -726,7 +773,9 @@ function PaymentDataTable({
                   <TableRow
                     key={row.id}
                     data-state={
-                      row.getIsSelected() ? "selected" : undefined
+                      row.getIsSelected()
+                        ? "selected"
+                        : undefined
                     }
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -749,10 +798,14 @@ function PaymentDataTable({
                       <div className="rounded-full bg-muted p-3">
                         <Search className="h-5 w-5 text-muted-foreground" />
                       </div>
+
                       <div>
-                        <p className="font-medium">No payments found</p>
+                        <p className="font-medium">
+                          No payments found
+                        </p>
                         <p className="text-sm text-muted-foreground">
-                          Try changing your search or add a new payment.
+                          Try changing your search or add a
+                          new payment.
                         </p>
                       </div>
                     </div>
@@ -764,12 +817,13 @@ function PaymentDataTable({
         </div>
       </div>
 
-      {/* Footer */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {hasFull && selectedRows > 0
             ? `${selectedRows} of ${filteredRows} row(s) selected`
-            : `${filteredRows} payment${filteredRows === 1 ? "" : "s"}`}
+            : `${filteredRows} payment${
+                filteredRows === 1 ? "" : "s"
+              }`}
         </p>
 
         <div className="flex items-center gap-2">
@@ -822,7 +876,9 @@ function PaymentDataTable({
             size="icon"
             className="hidden h-8 w-8 sm:flex"
             onClick={() =>
-              table.setPageIndex(table.getPageCount() - 1)
+              table.setPageIndex(
+                table.getPageCount() - 1,
+              )
             }
             disabled={!table.getCanNextPage()}
             aria-label="Last page"
@@ -840,12 +896,13 @@ function PaymentTableSkeleton() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <Skeleton className="h-10 w-full max-w-sm" />
+
         <div className="flex gap-2">
           <Skeleton className="h-10 w-24" />
         </div>
       </div>
 
-      <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
+      <div className="overflow-hidden rounded-md border">
         <div className="grid grid-cols-6 gap-4 border-b p-4">
           <Skeleton className="h-5 w-16" />
           <Skeleton className="h-5 w-24" />
@@ -872,6 +929,7 @@ function PaymentTableSkeleton() {
 
       <div className="flex items-center justify-between">
         <Skeleton className="h-5 w-40" />
+
         <div className="flex gap-2">
           <Skeleton className="h-8 w-8" />
           <Skeleton className="h-8 w-8" />
@@ -883,10 +941,15 @@ function PaymentTableSkeleton() {
   );
 }
 
-export default function PaymentContent({ hasFull }: PaymentContentProps) {
+export default function PaymentContent({
+  hasFull,
+}: PaymentContentProps) {
   const [data, setData] = React.useState<Payment[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
+  const [error, setError] = React.useState<string | null>(
+    null,
+  );
+
   const [pagination, setPagination] = React.useState({
     page: 1,
     limit: 10,
@@ -896,35 +959,44 @@ export default function PaymentContent({ hasFull }: PaymentContentProps) {
 
   const readonlyColumns = useReadonlyColumns();
   const fullColumns = useFullColumns();
-  const columns = hasFull ? fullColumns : readonlyColumns;
+  const columns = hasFull
+    ? fullColumns
+    : readonlyColumns;
 
   const loadPayments = React.useCallback(
     async (page = 1, search = "") => {
       setLoading(true);
       setError(null);
+
       try {
         const result = await fetchPayments({
           page,
           limit: pagination.limit,
           search,
         });
+
         if (result.success && result.data) {
           setData(result.data);
+
           if (result.pagination) {
             setPagination(result.pagination);
           }
         } else {
-          setError(result.error || "Failed to load payments");
+          setError(
+            result.error || "Failed to load payments",
+          );
         }
       } catch (err: unknown) {
         setError(
-          err instanceof Error ? err.message : "An error occurred"
+          err instanceof Error
+            ? err.message
+            : "An error occurred",
         );
       } finally {
         setLoading(false);
       }
     },
-    [pagination.limit]
+    [pagination.limit],
   );
 
   React.useEffect(() => {
@@ -938,6 +1010,7 @@ export default function PaymentContent({ hasFull }: PaymentContentProps) {
           <h1 className="text-2xl font-semibold tracking-tight">
             Payments
           </h1>
+
           <p className="mt-1 text-sm text-muted-foreground">
             {hasFull
               ? "Manage payments and record new transactions."
@@ -948,7 +1021,14 @@ export default function PaymentContent({ hasFull }: PaymentContentProps) {
         {loading ? (
           <PaymentTableSkeleton />
         ) : error ? (
-          <div className="text-red-500">{error}</div>
+          <Alert variant="destructive">
+            <AlertTitle>
+              Unable to load payments
+            </AlertTitle>
+            <AlertDescription>
+              {error}
+            </AlertDescription>
+          </Alert>
         ) : (
           <PaymentDataTable
             columns={columns}
@@ -962,7 +1042,9 @@ export default function PaymentContent({ hasFull }: PaymentContentProps) {
 
   if (hasFull) {
     return (
-      <PaymentProvider refresh={() => loadPayments(pagination.page)}>
+      <PaymentProvider
+        refresh={() => loadPayments(pagination.page)}
+      >
         {content}
       </PaymentProvider>
     );

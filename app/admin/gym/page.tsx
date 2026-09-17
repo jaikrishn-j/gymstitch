@@ -2,19 +2,29 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Building2,
+  Camera,
+  Globe,
+  MessageCircle,
+  Phone,
+  Play,
+  Save,
+  Share2,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from "@/components/ui/alert";
+
 import {
   fetchGymSettings,
   createGymSettings,
@@ -22,26 +32,18 @@ import {
   type GymSettings,
   type GymSettingsInput,
 } from "./actions";
-import {
-  Globe,
-  Phone,
-  Save,
-  Building2,
-  Camera,
-  Share2,
-  Play,
-  MessageCircle,
-} from "lucide-react";
 
 export default function GymSettingsPage() {
-  const [settings, setSettings] = React.useState<GymSettings | null>(null);
+  const [settings, setSettings] =
+    React.useState<GymSettings | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const [gymName, setGymName] = React.useState("");
   const [gymDescription, setGymDescription] = React.useState("");
-  const [registrationAmount, setRegistrationAmount] = React.useState("0");
+  const [registrationAmount, setRegistrationAmount] =
+    React.useState("0");
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [address, setAddress] = React.useState("");
@@ -55,8 +57,10 @@ export default function GymSettingsPage() {
     async function load() {
       try {
         const result = await fetchGymSettings();
+
         if (result.success) {
           setSettings(result.data ?? null);
+
           if (result.data) {
             setGymName(result.data.gymName);
             setGymDescription(result.data.gymDescription ?? "");
@@ -71,18 +75,27 @@ export default function GymSettingsPage() {
             setWhatsappNumber(result.data.whatsappNumber ?? "");
           }
         } else {
-          setError(result.error || "Failed to load gym settings");
+          setError(
+            result.error || "Failed to load gym settings.",
+          );
         }
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        setError(
+          err instanceof Error
+            ? err.message
+            : "An unexpected error occurred.",
+        );
       } finally {
         setLoading(false);
       }
     }
+
     load();
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
 
     if (!gymName.trim()) {
@@ -105,17 +118,29 @@ export default function GymSettingsPage() {
     };
 
     setSaving(true);
+
     try {
       if (settings) {
         const result = await updateGymSettings(payload);
-        if (result.data) setSettings(result.data);
+
+        if (result.data) {
+          setSettings(result.data);
+        }
       } else {
         const result = await createGymSettings(payload);
-        if (result.data) setSettings(result.data);
+
+        if (result.data) {
+          setSettings(result.data);
+        }
       }
+
       toast.success("Gym settings saved successfully");
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to save gym settings");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Failed to save gym settings",
+      );
     } finally {
       setSaving(false);
     }
@@ -129,7 +154,10 @@ export default function GymSettingsPage() {
     return (
       <div className="w-full">
         <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="text-red-500">{error}</div>
+          <Alert variant="destructive">
+            <AlertTitle>Something went wrong</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         </div>
       </div>
     );
@@ -142,44 +170,53 @@ export default function GymSettingsPage() {
           <h1 className="text-2xl font-semibold tracking-tight">
             Gym Profile
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your gym&apos;s basic details and contact information.
+          <p className="text-sm text-muted-foreground">
+            Manage your gym&apos;s basic details and contact
+            information.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+          <section className="rounded-md border">
+            <div className="border-b p-6">
+              <div className="flex items-center gap-2">
                 <Building2 className="h-4 w-4" />
-                Basic Information
-              </CardTitle>
-              <CardDescription>
+                <h2 className="font-semibold">
+                  Basic Information
+                </h2>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
                 General details about your gym.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+
+            <div className="space-y-4 p-6">
               <div className="grid gap-2">
                 <Label htmlFor="gymName">Gym Name *</Label>
                 <Input
                   id="gymName"
                   value={gymName}
                   onChange={(e) => setGymName(e.target.value)}
-                  placeholder="e.g., FitZone Gym"
+                  placeholder="e.g. FitZone Gym"
                   required
                 />
               </div>
+
               <div className="grid gap-2">
-                <Label htmlFor="gymDescription">Description</Label>
+                <Label htmlFor="gymDescription">
+                  Description
+                </Label>
                 <Textarea
                   id="gymDescription"
                   value={gymDescription}
-                  onChange={(e) => setGymDescription(e.target.value)}
+                  onChange={(e) =>
+                    setGymDescription(e.target.value)
+                  }
                   placeholder="A brief description about your gym"
                   rows={3}
                 />
               </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="registrationAmount">
                   Registration Amount (₹)
@@ -190,26 +227,30 @@ export default function GymSettingsPage() {
                   min="0"
                   step="0.01"
                   value={registrationAmount}
-                  onChange={(e) => setRegistrationAmount(e.target.value)}
+                  onChange={(e) =>
+                    setRegistrationAmount(e.target.value)
+                  }
                   placeholder="0.00"
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          {/* Contact */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+          <section className="rounded-md border">
+            <div className="border-b p-6">
+              <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4" />
-                Contact Information
-              </CardTitle>
-              <CardDescription>
+                <h2 className="font-semibold">
+                  Contact Information
+                </h2>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
                 How members can reach your gym.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              </p>
+            </div>
+
+            <div className="space-y-4 p-6">
+              <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="phone">Phone</Label>
                   <Input
@@ -219,6 +260,7 @@ export default function GymSettingsPage() {
                     placeholder="+91 98765 43210"
                   />
                 </div>
+
                 <div className="grid gap-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
@@ -230,6 +272,7 @@ export default function GymSettingsPage() {
                   />
                 </div>
               </div>
+
               <div className="grid gap-2">
                 <Label htmlFor="address">Address</Label>
                 <Textarea
@@ -237,26 +280,31 @@ export default function GymSettingsPage() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Full gym address"
-                  rows={2}
+                  rows={3}
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          {/* Online Presence */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
+          <section className="rounded-md border">
+            <div className="border-b p-6">
+              <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
-                Online Presence
-              </CardTitle>
-              <CardDescription>
+                <h2 className="font-semibold">
+                  Online Presence
+                </h2>
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
                 Your gym&apos;s website and social media links.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+
+            <div className="space-y-4 p-6">
               <div className="grid gap-2">
-                <Label htmlFor="websiteUrl" className="flex items-center gap-1.5">
+                <Label
+                  htmlFor="websiteUrl"
+                  className="flex items-center gap-1.5"
+                >
                   <Globe className="h-3.5 w-3.5" />
                   Website
                 </Label>
@@ -264,10 +312,13 @@ export default function GymSettingsPage() {
                   id="websiteUrl"
                   type="url"
                   value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
+                  onChange={(e) =>
+                    setWebsiteUrl(e.target.value)
+                  }
                   placeholder="https://yourgym.com"
                 />
               </div>
+
               <div className="grid gap-2">
                 <Label
                   htmlFor="instagramUrl"
@@ -280,10 +331,13 @@ export default function GymSettingsPage() {
                   id="instagramUrl"
                   type="url"
                   value={instagramUrl}
-                  onChange={(e) => setInstagramUrl(e.target.value)}
+                  onChange={(e) =>
+                    setInstagramUrl(e.target.value)
+                  }
                   placeholder="https://instagram.com/yourgym"
                 />
               </div>
+
               <div className="grid gap-2">
                 <Label
                   htmlFor="facebookUrl"
@@ -296,10 +350,13 @@ export default function GymSettingsPage() {
                   id="facebookUrl"
                   type="url"
                   value={facebookUrl}
-                  onChange={(e) => setFacebookUrl(e.target.value)}
+                  onChange={(e) =>
+                    setFacebookUrl(e.target.value)
+                  }
                   placeholder="https://facebook.com/yourgym"
                 />
               </div>
+
               <div className="grid gap-2">
                 <Label
                   htmlFor="youtubeUrl"
@@ -312,11 +369,15 @@ export default function GymSettingsPage() {
                   id="youtubeUrl"
                   type="url"
                   value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  onChange={(e) =>
+                    setYoutubeUrl(e.target.value)
+                  }
                   placeholder="https://youtube.com/@yourgym"
                 />
               </div>
+
               <Separator />
+
               <div className="grid gap-2">
                 <Label
                   htmlFor="whatsappNumber"
@@ -328,14 +389,15 @@ export default function GymSettingsPage() {
                 <Input
                   id="whatsappNumber"
                   value={whatsappNumber}
-                  onChange={(e) => setWhatsappNumber(e.target.value)}
+                  onChange={(e) =>
+                    setWhatsappNumber(e.target.value)
+                  }
                   placeholder="+91 98765 43210"
                 />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          {/* Save */}
           <div className="flex justify-end">
             <Button type="submit" disabled={saving}>
               <Save className="mr-2 h-4 w-4" />
@@ -356,17 +418,22 @@ function SettingsSkeleton() {
           <Skeleton className="h-8 w-48" />
           <Skeleton className="mt-2 h-4 w-72" />
         </div>
+
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="rounded-xl border bg-background shadow-sm">
-              <div className="p-6 space-y-4">
+            <div
+              key={i}
+              className="overflow-hidden rounded-md border"
+            >
+              <div className="space-y-2 border-b p-6">
                 <Skeleton className="h-5 w-40" />
                 <Skeleton className="h-4 w-56" />
-                <div className="space-y-3 pt-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                </div>
+              </div>
+
+              <div className="space-y-4 p-6">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-20 w-full" />
               </div>
             </div>
           ))}

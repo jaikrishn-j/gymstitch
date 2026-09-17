@@ -268,7 +268,7 @@ export default function DashboardContent({ basePath }: DashboardContentProps) {
               <CardTitle>Recent Payments</CardTitle>
               <CardDescription>Last 5 payment transactions</CardDescription>
             </div>
-            <Button variant="outline" render={<Link href={`${basePath}/payment`} />}>
+            <Button variant="outline" nativeButton={false} render={<Link href={`${basePath}/payment`} />}>
               <span className="gap-1 flex items-center">
                 View All
                 <ArrowRight className="h-4 w-4" />

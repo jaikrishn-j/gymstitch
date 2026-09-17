@@ -11,17 +11,17 @@ import {
 } from "@tanstack/react-table";
 
 import {
+  ArrowUpDown,
+  Check,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  Copy,
+  Eye,
+  MoreHorizontal,
   Search,
   SlidersHorizontal,
-  ArrowUpDown,
-  MoreHorizontal,
-  Eye,
-  Copy,
-  Check,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -30,16 +30,18 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
+
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuGroup,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
 import {
   Table,
   TableBody,
@@ -93,7 +96,7 @@ function MemberActionsReadonly({ member }: { member: Member }) {
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleCopyId}>
             {copied ? (
               <Check className="mr-2 h-4 w-4" />
@@ -110,344 +113,12 @@ function MemberActionsReadonly({ member }: { member: Member }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-    <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="text-xl">Member Details</DialogTitle>
-          <DialogDescription>
-            View information for {member.name}.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          {/* Member */}
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Member</p>
-            <p className="text-2xl font-bold tracking-tight">{member.name}</p>
-          </div>
-
-          {/* Contact Information */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold">Contact Information</h3>
-              <p className="text-sm text-muted-foreground">
-                Member contact details
-              </p>
-            </div>
-
-            <div className="grid gap-4 rounded-lg border p-4">
-              <div className="space-y-1">
-                <Label className="text-muted-foreground">Email Address</Label>
-                <p className="text-sm font-medium break-all">{member.email}</p>
-              </div>
-
-              {member.phone && (
-                <div className="space-y-1">
-                  <Label className="text-muted-foreground">Phone Number</Label>
-                  <p className="text-sm font-medium">{member.phone}</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Membership */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold">Membership</h3>
-              <p className="text-sm text-muted-foreground">
-                Current membership status
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-1">
-                <Label className="text-muted-foreground">Current Plan</Label>
-                <p className="text-sm font-medium">
-                  {member.plan && member.plan !== "not activated"
-                    ? member.plan
-                    : "No active plan"}
-                </p>
-              </div>
-
-              {!member.plan || member.plan === "not activated" ? (
-                <Badge variant="outline">Not activated</Badge>
-              ) : (
-                <Badge variant="secondary">{member.plan}</Badge>
-              )}
-            </div>
-          </div>
-
-          {/* Member ID */}
-          <div className="space-y-2">
-            <Label className="text-muted-foreground">Member ID</Label>
-            <div className="rounded-md bg-muted px-3 py-2">
-              <p className="font-mono text-xs break-all">{member.id}</p>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setViewOpen(false)}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
+      <MemberDetailsDialog
+        member={member}
+        open={viewOpen}
+        onOpenChange={setViewOpen}
+      />
     </>
-  );
-}
-
-function useReadonlyColumns(): ColumnDef<DataTableFeatures, Member>[] {
-  return React.useMemo(
-    () => [
-      {
-        id: "name",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
-            Name
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        accessorFn: (row) => row.name,
-        cell: ({ row }) => {
-          const name = row.original.name;
-          const initials = name
-            .split(" ")
-            .map((part) => part[0])
-            .slice(0, 2)
-            .join("")
-            .toUpperCase();
-
-          return (
-            <div className="flex min-w-[180px] items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                {initials}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-medium">{name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {row.original.id}
-                </p>
-              </div>
-            </div>
-          );
-        },
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "email",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
-            Email
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        accessorFn: (row) => row.email,
-        filterFn: "includesString",
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.email}</span>
-        ),
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "phone",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
-            Phone
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        accessorFn: (row) => row.phone,
-        filterFn: "includesString",
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.phone || ""}</span>
-        ),
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "plan",
-        header: "Plan",
-        accessorFn: (row) => row.plan,
-        cell: ({ row }) => {
-          const plan = row.original.plan;
-          if (!plan || plan === "not activated") {
-            return <Badge variant="outline">Not activated</Badge>;
-          }
-          return (
-            <Badge variant="secondary" className="font-normal">
-              {plan}
-            </Badge>
-          );
-        },
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "actions",
-        enableHiding: false,
-        cell: ({ row }) => {
-          const member = row.original;
-          return (
-            <div className="flex justify-end">
-              <MemberActionsReadonly member={member} />
-            </div>
-          );
-        },
-      } as ColumnDef<DataTableFeatures, Member>,
-    ],
-    []
-  );
-}
-
-function useFullColumns(): ColumnDef<DataTableFeatures, Member>[] {
-  return React.useMemo(
-    () => [
-      {
-        id: "select",
-        header: ({ table }) => (
-          <Checkbox
-            checked={table.getIsAllPageRowsSelected()}
-            onCheckedChange={(value) => {
-              table.toggleAllPageRowsSelected(!!value);
-            }}
-            aria-label="Select all rows"
-          />
-        ),
-        cell: ({ row }) => (
-          <Checkbox
-            checked={row.getIsSelected()}
-            onCheckedChange={(value) => {
-              row.toggleSelected(!!value);
-            }}
-            aria-label={`Select ${row.original.name}`}
-          />
-        ),
-        enableSorting: false,
-        enableHiding: false,
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "name",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
-            Name
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        accessorFn: (row) => row.name,
-        cell: ({ row }) => {
-          const name = row.original.name;
-          const initials = name
-            .split(" ")
-            .map((part) => part[0])
-            .slice(0, 2)
-            .join("")
-            .toUpperCase();
-
-          return (
-            <div className="flex min-w-[180px] items-center gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                {initials}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-medium">{name}</p>
-                <p className="truncate text-xs text-muted-foreground">
-                  {row.original.id}
-                </p>
-              </div>
-            </div>
-          );
-        },
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "email",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
-            Email
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        accessorFn: (row) => row.email,
-        filterFn: "includesString",
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.email}</span>
-        ),
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "phone",
-        header: ({ column }) => (
-          <Button
-            variant="ghost"
-            className="-ml-2 h-8 px-2"
-            onClick={() =>
-              column.toggleSorting(column.getIsSorted() === "asc")
-            }
-          >
-            Phone
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        ),
-        accessorFn: (row) => row.phone,
-        filterFn: "includesString",
-        cell: ({ row }) => (
-          <span className="text-muted-foreground">{row.original.phone || ""}</span>
-        ),
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "plan",
-        header: "Plan",
-        accessorFn: (row) => row.plan,
-        cell: ({ row }) => {
-          const plan = row.original.plan;
-          if (!plan || plan === "not activated") {
-            return <Badge variant="outline">Not activated</Badge>;
-          }
-          return (
-            <Badge variant="secondary" className="font-normal">
-              {plan}
-            </Badge>
-          );
-        },
-      } as ColumnDef<DataTableFeatures, Member>,
-      {
-        id: "actions",
-        enableHiding: false,
-        cell: ({ row }) => {
-          const member = row.original;
-          return (
-            <div className="flex justify-end">
-              <FullMemberActions member={member} />
-            </div>
-          );
-        },
-      } as ColumnDef<DataTableFeatures, Member>,
-    ],
-    []
   );
 }
 
@@ -473,7 +144,7 @@ function FullMemberActions({ member }: { member: Member }) {
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleCopyId}>
             {copied ? (
               <Check className="mr-2 h-4 w-4" />
@@ -495,90 +166,352 @@ function FullMemberActions({ member }: { member: Member }) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-      <DialogContent className="sm:max-w-md">
+      <MemberDetailsDialog
+        member={member}
+        open={viewOpen}
+        onOpenChange={setViewOpen}
+      />
+    </>
+  );
+}
+
+function MemberDetailsDialog({
+  member,
+  open,
+  onOpenChange,
+}: {
+  member: Member;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const hasPlan =
+    !!member.plan && member.plan !== "not activated";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-xl">Member Details</DialogTitle>
+          <DialogTitle>Member Details</DialogTitle>
           <DialogDescription>
             View information for {member.name}.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* Member */}
+        <div className="space-y-6 py-2">
           <div className="space-y-1">
             <p className="text-sm text-muted-foreground">Member</p>
-            <p className="text-2xl font-bold tracking-tight">{member.name}</p>
+            <p className="text-xl font-semibold tracking-tight">
+              {member.name}
+            </p>
           </div>
 
-          {/* Contact Information */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <h3 className="text-sm font-semibold">Contact Information</h3>
+              <h3 className="text-sm font-medium">
+                Contact Information
+              </h3>
               <p className="text-sm text-muted-foreground">
                 Member contact details
               </p>
             </div>
 
-            <div className="grid gap-4 rounded-lg border p-4">
+            <div className="space-y-4 rounded-md border p-4">
               <div className="space-y-1">
-                <Label className="text-muted-foreground">Email Address</Label>
-                <p className="text-sm font-medium break-all">{member.email}</p>
+                <Label className="text-muted-foreground">
+                  Email Address
+                </Label>
+                <p className="text-sm font-medium break-all">
+                  {member.email}
+                </p>
               </div>
 
               {member.phone && (
                 <div className="space-y-1">
-                  <Label className="text-muted-foreground">Phone Number</Label>
-                  <p className="text-sm font-medium">{member.phone}</p>
+                  <Label className="text-muted-foreground">
+                    Phone Number
+                  </Label>
+                  <p className="text-sm font-medium">
+                    {member.phone}
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Membership */}
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div>
-              <h3 className="text-sm font-semibold">Membership</h3>
+              <h3 className="text-sm font-medium">Membership</h3>
               <p className="text-sm text-muted-foreground">
                 Current membership status
               </p>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border p-4">
-              <div className="space-y-1">
-                <Label className="text-muted-foreground">Current Plan</Label>
-                <p className="text-sm font-medium">
-                  {member.plan && member.plan !== "not activated"
-                    ? member.plan
-                    : "No active plan"}
+            <div className="flex items-center justify-between gap-4 rounded-md border p-4">
+              <div className="min-w-0 space-y-1">
+                <Label className="text-muted-foreground">
+                  Current Plan
+                </Label>
+                <p className="truncate text-sm font-medium">
+                  {hasPlan ? member.plan : "No active plan"}
                 </p>
               </div>
 
-              {!member.plan || member.plan === "not activated" ? (
-                <Badge variant="outline">Not activated</Badge>
+              {hasPlan ? (
+                <Badge variant="secondary" className="shrink-0">
+                  {member.plan}
+                </Badge>
               ) : (
-                <Badge variant="secondary">{member.plan}</Badge>
+                <Badge variant="outline" className="shrink-0">
+                  Not activated
+                </Badge>
               )}
             </div>
           </div>
 
-          {/* Member ID */}
           <div className="space-y-2">
-            <Label className="text-muted-foreground">Member ID</Label>
+            <Label className="text-muted-foreground">
+              Member ID
+            </Label>
             <div className="rounded-md bg-muted px-3 py-2">
-              <p className="font-mono text-xs break-all">{member.id}</p>
+              <p className="break-all font-mono text-xs">
+                {member.id}
+              </p>
             </div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => setViewOpen(false)}>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+          >
             Close
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-    </>
+  );
+}
+
+function MemberNameCell({
+  member,
+}: {
+  member: Member;
+}) {
+  const initials = member.name
+    .split(" ")
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <div className="flex min-w-[180px] items-center gap-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+        {initials}
+      </div>
+
+      <div className="min-w-0">
+        <p className="truncate font-medium">{member.name}</p>
+        <p className="truncate text-xs text-muted-foreground">
+          {member.id}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SortableHeader({
+  column,
+  children,
+}: {
+  column: any;
+  children: React.ReactNode;
+}) {
+  return (
+    <Button
+      variant="ghost"
+      className="-ml-2 h-8 px-2"
+      onClick={() =>
+        column.toggleSorting(column.getIsSorted() === "asc")
+      }
+    >
+      {children}
+      <ArrowUpDown className="ml-2 h-4 w-4" />
+    </Button>
+  );
+}
+
+function PlanCell({ plan }: { plan: string }) {
+  if (!plan || plan === "not activated") {
+    return <Badge variant="outline">Not activated</Badge>;
+  }
+
+  return (
+    <Badge variant="secondary" className="font-normal">
+      {plan}
+    </Badge>
+  );
+}
+
+function useReadonlyColumns(): ColumnDef<
+  DataTableFeatures,
+  Member
+>[] {
+  return React.useMemo(
+    () => [
+      {
+        id: "name",
+        header: ({ column }) => (
+          <SortableHeader column={column}>Name</SortableHeader>
+        ),
+        accessorFn: (row) => row.name,
+        cell: ({ row }) => (
+          <MemberNameCell member={row.original} />
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "email",
+        header: ({ column }) => (
+          <SortableHeader column={column}>Email</SortableHeader>
+        ),
+        accessorFn: (row) => row.email,
+        filterFn: "includesString",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.email}
+          </span>
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "phone",
+        header: ({ column }) => (
+          <SortableHeader column={column}>Phone</SortableHeader>
+        ),
+        accessorFn: (row) => row.phone,
+        filterFn: "includesString",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.phone || ""}
+          </span>
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "plan",
+        header: "Plan",
+        accessorFn: (row) => row.plan,
+        cell: ({ row }) => (
+          <PlanCell plan={row.original.plan} />
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "actions",
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <MemberActionsReadonly member={row.original} />
+          </div>
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+    ],
+    [],
+  );
+}
+
+function useFullColumns(): ColumnDef<
+  DataTableFeatures,
+  Member
+>[] {
+  return React.useMemo(
+    () => [
+      {
+        id: "select",
+        header: ({ table }) => (
+          <Checkbox
+            checked={table.getIsAllPageRowsSelected()}
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label="Select all rows"
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) =>
+              row.toggleSelected(!!value)
+            }
+            aria-label={`Select ${row.original.name}`}
+          />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "name",
+        header: ({ column }) => (
+          <SortableHeader column={column}>Name</SortableHeader>
+        ),
+        accessorFn: (row) => row.name,
+        cell: ({ row }) => (
+          <MemberNameCell member={row.original} />
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "email",
+        header: ({ column }) => (
+          <SortableHeader column={column}>Email</SortableHeader>
+        ),
+        accessorFn: (row) => row.email,
+        filterFn: "includesString",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.email}
+          </span>
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "phone",
+        header: ({ column }) => (
+          <SortableHeader column={column}>Phone</SortableHeader>
+        ),
+        accessorFn: (row) => row.phone,
+        filterFn: "includesString",
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.phone || ""}
+          </span>
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "plan",
+        header: "Plan",
+        accessorFn: (row) => row.plan,
+        cell: ({ row }) => (
+          <PlanCell plan={row.original.plan} />
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+
+      {
+        id: "actions",
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <FullMemberActions member={row.original} />
+          </div>
+        ),
+      } as ColumnDef<DataTableFeatures, Member>,
+    ],
+    [],
   );
 }
 
@@ -591,16 +524,19 @@ function MembersDataTable({
   data: Member[];
   hasFull: boolean;
 }) {
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>(
+    [],
+  );
   const [columnFilters, setColumnFilters] =
     React.useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] =
     React.useState<ColumnVisibilityState>({});
   const [rowSelection, setRowSelection] = React.useState({});
-  const [pagination, setPagination] = React.useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const [pagination, setPagination] =
+    React.useState<PaginationState>({
+      pageIndex: 0,
+      pageSize: 10,
+    });
   const [globalFilter, setGlobalFilter] = React.useState("");
 
   const table = useTable({
@@ -623,15 +559,18 @@ function MembersDataTable({
     },
   });
 
-  const selectedRows = table.getFilteredSelectedRowModel().rows.length;
-  const filteredRows = table.getFilteredRowModel().rows.length;
+  const selectedRows =
+    table.getFilteredSelectedRowModel().rows.length;
+  const filteredRows =
+    table.getFilteredRowModel().rows.length;
+  const pageCount = Math.max(table.getPageCount(), 1);
 
   return (
     <div className="w-full space-y-4">
-      {/* Toolbar */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
           <Input
             placeholder="Search members..."
             value={globalFilter ?? ""}
@@ -656,10 +595,7 @@ function MembersDataTable({
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                />
+                <Button variant="outline" className="gap-2" />
               }
             >
               <SlidersHorizontal className="h-4 w-4" />
@@ -668,14 +604,18 @@ function MembersDataTable({
 
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuGroup>
-                <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                <DropdownMenuLabel>
+                  Toggle columns
+                </DropdownMenuLabel>
+
                 <DropdownMenuSeparator />
+
                 {table
                   .getAllColumns()
                   .filter(
                     (column) =>
                       typeof column.accessorFn !== "undefined" &&
-                      column.getCanHide()
+                      column.getCanHide(),
                   )
                   .map((column) => (
                     <DropdownMenuCheckboxItem
@@ -697,8 +637,7 @@ function MembersDataTable({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-xl border bg-background shadow-sm">
+      <div className="overflow-hidden rounded-md border">
         <div className="w-full overflow-x-auto">
           <Table>
             <TableHeader>
@@ -726,7 +665,9 @@ function MembersDataTable({
                   <TableRow
                     key={row.id}
                     data-state={
-                      row.getIsSelected() ? "selected" : undefined
+                      row.getIsSelected()
+                        ? "selected"
+                        : undefined
                     }
                   >
                     {row.getVisibleCells().map((cell) => (
@@ -743,19 +684,14 @@ function MembersDataTable({
                 <TableRow>
                   <TableCell
                     colSpan={columns.length}
-                    className="h-40 text-center"
+                    className="h-32 text-center"
                   >
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <div className="rounded-full bg-muted p-3">
-                        <Search className="h-5 w-5 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="font-medium">No members found</p>
-                        <p className="text-sm text-muted-foreground">
-                          Try changing your search.
-                        </p>
-                      </div>
-                    </div>
+                    <p className="font-medium">
+                      No members found
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Try changing your search.
+                    </p>
                   </TableCell>
                 </TableRow>
               )}
@@ -764,23 +700,24 @@ function MembersDataTable({
         </div>
       </div>
 
-      {/* Footer */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           {hasFull && selectedRows > 0
             ? `${selectedRows} of ${filteredRows} row(s) selected`
-            : `${filteredRows} member${filteredRows === 1 ? "" : "s"}`}
+            : `${filteredRows} member${
+                filteredRows === 1 ? "" : "s"
+              }`}
         </p>
 
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">
+          <span className="mr-1 text-sm text-muted-foreground">
             Page{" "}
             <span className="font-medium text-foreground">
               {pagination.pageIndex + 1}
             </span>{" "}
             of{" "}
             <span className="font-medium text-foreground">
-              {table.getPageCount()}
+              {pageCount}
             </span>
           </span>
 
@@ -838,34 +775,43 @@ function MembersDataTable({
 function MembersTableSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-10 w-full max-w-sm" />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Skeleton className="h-10 w-full sm:max-w-sm" />
+
         <div className="flex gap-2">
           <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-28" />
         </div>
       </div>
 
-      <div className="rounded-xl border bg-background shadow-sm overflow-hidden">
-        <div className="grid grid-cols-3 gap-4 border-b p-4">
-          <Skeleton className="h-5 w-24" />
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="h-5 w-16" />
+      <div className="overflow-hidden rounded-md border">
+        <div className="border-b bg-muted/50 p-4">
+          <div className="grid grid-cols-5 gap-4">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-12" />
+          </div>
         </div>
 
-        {Array.from({ length: 5 }).map((_, index) => (
+        {Array.from({ length: 8 }).map((_, index) => (
           <div
             key={index}
-            className="grid grid-cols-3 gap-4 border-b p-4 last:border-0"
+            className="grid grid-cols-5 items-center gap-4 border-b p-4 last:border-0"
           >
-            <Skeleton className="h-5 w-3/4" />
-            <Skeleton className="h-5 w-1/2" />
-            <Skeleton className="h-5 w-16" />
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="ml-auto h-8 w-8" />
           </div>
         ))}
       </div>
 
       <div className="flex items-center justify-between">
-        <Skeleton className="h-5 w-40" />
+        <Skeleton className="h-4 w-32" />
+
         <div className="flex gap-2">
           <Skeleton className="h-8 w-8" />
           <Skeleton className="h-8 w-8" />
@@ -877,10 +823,13 @@ function MembersTableSkeleton() {
   );
 }
 
-export default function   MembersContent({ hasFull }: MembersContentProps) {
+export default function MembersContent({
+  hasFull,
+}: MembersContentProps) {
   const [data, setData] = React.useState<Member[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
+
   const [pagination, setPagination] = React.useState({
     page: 1,
     limit: 10,
@@ -896,29 +845,36 @@ export default function   MembersContent({ hasFull }: MembersContentProps) {
     async (page = 1, search = "") => {
       setLoading(true);
       setError(null);
+
       try {
         const result = await fetchMembers({
           page,
           limit: pagination.limit,
           search,
         });
+
         if (result.success && result.data) {
           setData(result.data);
+
           if (result.pagination) {
             setPagination(result.pagination);
           }
         } else {
-          setError(result.error || "Failed to load members");
+          setError(
+            result.error || "Failed to load members.",
+          );
         }
       } catch (err: unknown) {
         setError(
-          err instanceof Error ? err.message : "An error occurred"
+          err instanceof Error
+            ? err.message
+            : "An unexpected error occurred.",
         );
       } finally {
         setLoading(false);
       }
     },
-    [pagination.limit]
+    [pagination.limit],
   );
 
   React.useEffect(() => {
@@ -932,6 +888,7 @@ export default function   MembersContent({ hasFull }: MembersContentProps) {
           <h1 className="text-2xl font-semibold tracking-tight">
             Members
           </h1>
+
           <p className="mt-1 text-sm text-muted-foreground">
             {hasFull
               ? "Manage gym members and their subscriptions."
@@ -942,7 +899,9 @@ export default function   MembersContent({ hasFull }: MembersContentProps) {
         {loading ? (
           <MembersTableSkeleton />
         ) : error ? (
-          <div className="text-red-500">{error}</div>
+          <div className="rounded-md border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+            {error}
+          </div>
         ) : (
           <MembersDataTable
             columns={columns}
@@ -956,7 +915,9 @@ export default function   MembersContent({ hasFull }: MembersContentProps) {
 
   if (hasFull) {
     return (
-      <MemberProvider refresh={() => loadMembers(pagination.page)}>
+      <MemberProvider
+        refresh={() => loadMembers(pagination.page)}
+      >
         {content}
       </MemberProvider>
     );

@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { MoreHorizontal, Eye, Copy, Check } from "lucide-react"
+import { useState } from "react";
+import { Check, Copy, Eye, MoreHorizontal } from "lucide-react";
 
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -13,27 +13,31 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { type Payment } from "./columns"
+} from "@/components/ui/dropdown-menu";
+
+import { type Payment } from "./columns";
 
 interface PaymentActionsProps {
-  payment: Payment
+  payment: Payment;
 }
 
 export function PaymentActions({ payment }: PaymentActionsProps) {
-  const [viewOpen, setViewOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [viewOpen, setViewOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   function handleCopyId() {
-    navigator.clipboard.writeText(String(payment.id))
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    navigator.clipboard.writeText(String(payment.id));
+    setCopied(true);
+
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   }
 
   return (
@@ -48,7 +52,7 @@ export function PaymentActions({ payment }: PaymentActionsProps) {
           <MoreHorizontal className="h-4 w-4" />
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={handleCopyId}>
             {copied ? (
               <Check className="mr-2 h-4 w-4" />
@@ -65,22 +69,22 @@ export function PaymentActions({ payment }: PaymentActionsProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* View Dialog */}
       <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-h-[calc(100vh-2rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="text-xl">Payment Details</DialogTitle>
+            <DialogTitle>Payment Details</DialogTitle>
             <DialogDescription>
               View information for payment #{payment.id}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
-            {/* Amount & Status */}
-            <div className="flex items-center justify-between rounded-lg border p-4">
+            <div className="flex items-center justify-between gap-4 border-y py-4">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Payment Amount</p>
-                <p className="text-2xl font-bold tracking-tight">
+                <Label className="text-muted-foreground">
+                  Payment Amount
+                </Label>
+                <p className="text-2xl font-semibold tracking-tight">
                   ₹{Number(payment.amount).toLocaleString("en-IN")}
                 </p>
               </div>
@@ -98,76 +102,94 @@ export function PaymentActions({ payment }: PaymentActionsProps) {
               </Badge>
             </div>
 
-            {/* Payment Information */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <h3 className="text-sm font-semibold">Payment Information</h3>
+                <h3 className="text-sm font-medium">
+                  Payment Information
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   Transaction and membership details
                 </p>
               </div>
 
-              <div className="grid gap-4 rounded-lg border p-4">
+              <div className="grid gap-4 border-y py-4">
                 <div className="space-y-1">
-                  <Label className="text-muted-foreground">Payment ID</Label>
-                  <p className="font-mono text-xs break-all">{payment.id}</p>
+                  <Label className="text-muted-foreground">
+                    Payment ID
+                  </Label>
+                  <p className="break-all font-mono text-xs">
+                    {payment.id}
+                  </p>
                 </div>
 
                 <div className="space-y-1">
                   <Label className="text-muted-foreground">Plan</Label>
+
                   <div>
                     {payment.planName ? (
-                      <Badge variant="secondary">{payment.planName}</Badge>
+                      <Badge variant="secondary">
+                        {payment.planName}
+                      </Badge>
                     ) : (
                       <Badge variant="outline">Registration</Badge>
                     )}
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
-                    <Label className="text-muted-foreground">Payment Method</Label>
+                    <Label className="text-muted-foreground">
+                      Payment Method
+                    </Label>
                     <p className="text-sm font-medium capitalize">
                       {payment.paymentMethod}
                     </p>
                   </div>
 
-                  <div className="space-y-1 text-right">
-                    <Label className="text-muted-foreground">Date</Label>
+                  <div className="space-y-1 sm:text-right">
+                    <Label className="text-muted-foreground">
+                      Date
+                    </Label>
                     <p className="text-sm font-medium">
-                      {new Date(payment.paidAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                      {new Date(payment.paidAt).toLocaleDateString(
+                        "en-IN",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        },
+                      )}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* User */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
-                <h3 className="text-sm font-semibold">Member</h3>
+                <h3 className="text-sm font-medium">Member</h3>
                 <p className="text-sm text-muted-foreground">
                   Account associated with this payment
                 </p>
               </div>
 
-              <div className="rounded-lg border p-4">
-                <p className="text-lg font-semibold">{payment.userName}</p>
-                <p className="text-sm text-muted-foreground break-all">
+              <div className="border-y py-4">
+                <p className="text-base font-medium">
+                  {payment.userName}
+                </p>
+                <p className="break-all text-sm text-muted-foreground">
                   {payment.userEmail}
                 </p>
               </div>
             </div>
 
-            {/* Description */}
             {payment.description && (
               <div className="space-y-2">
-                <Label className="text-muted-foreground">Description</Label>
-                <div className="rounded-lg border bg-muted/50 p-3">
+                <Label className="text-muted-foreground">
+                  Description
+                </Label>
+
+                <div className="border-y py-3">
                   <p className="text-sm">{payment.description}</p>
                 </div>
               </div>
@@ -175,12 +197,15 @@ export function PaymentActions({ payment }: PaymentActionsProps) {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setViewOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setViewOpen(false)}
+            >
               Close
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
