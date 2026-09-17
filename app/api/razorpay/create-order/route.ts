@@ -6,10 +6,12 @@ import { plansTable, gymSettingsTable, paymentsTable } from "@/app/db/schema";
 import { checkUserType } from "@/utils/userRole";
 import { UserRole } from "@/types";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+function getRazorpay() {
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID!,
+    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -75,7 +77,7 @@ export async function POST(request: NextRequest) {
       : 0;
     const totalAmountPaise = Math.round((planAmount + registrationFee) * 100);
 
-    const order = await razorpay.orders.create({
+    const order = await getRazorpay().orders.create({
       amount: totalAmountPaise,
       currency: "INR",
       receipt: `plan_${planId}_${user.id}_${Date.now()}`,
