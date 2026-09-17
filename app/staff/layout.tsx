@@ -1,4 +1,5 @@
 import Adminsidebar from "@/components/admin/Adminsidebar";
+import { NotificationBadge } from "@/components/notifications/notification-badge";
 import Staffsidebar from "@/components/staff/Staffsidebar";
 import { DynamicBreadcrumb } from "@/components/admin/BreadCrumbManager";
 import { ModeToggle } from "@/components/ThemeToggle";
@@ -56,9 +57,12 @@ const Layout = async ({ children }: Props) => {
             <Link
               href="/staff/notifications"
               aria-label="Notifications"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <Bell className="h-4 w-4" />
+              <span className="relative">
+                <Bell className="h-4 w-4" />
+                <NotificationBadge />
+              </span>
               <span className="sr-only">Notifications</span>
             </Link>
 

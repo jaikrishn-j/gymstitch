@@ -1,4 +1,5 @@
 import Adminsidebar from "@/components/admin/Adminsidebar";
+import { NotificationBadge } from "@/components/notifications/notification-badge";
 import { Separator } from "@/components/ui/separator";
 import {
   SidebarInset,
@@ -63,7 +64,10 @@ const Layout = async ({ children }: Props) => {
               href="/admin/notifications"
               label="Notifications"
             >
-              <Bell className="h-4 w-4" />
+              <span className="relative">
+                <Bell className="h-4 w-4" />
+                <NotificationBadge />
+              </span>
             </ButtonLink>
 
             <ModeToggle />
