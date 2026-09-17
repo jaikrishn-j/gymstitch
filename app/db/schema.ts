@@ -91,6 +91,9 @@ export const gymSettingsTable = pgTable("gym_settings", {
     youtubeUrl: varchar({ length: 500 }),
     whatsappNumber: varchar({ length: 30 }),
 
+    // Razorpay / online payment collection
+    razorpayEnabled: boolean().notNull().default(false),
+
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
 });
