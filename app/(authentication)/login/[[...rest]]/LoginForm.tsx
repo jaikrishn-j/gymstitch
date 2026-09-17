@@ -65,7 +65,18 @@ export function LoginForm({
         signIn.status === "needs_first_factor" ||
         signIn.status === "needs_second_factor"
       ) {
-        setError("Additional verification is required.")
+        const verification = signIn.firstFactorVerification
+        if (verification?.status === "expired") {
+          await signIn.prepareFirstFactorVerification({
+            strategy: "email_code",
+            emailAddressId: verification.emailAddressId,
+          })
+        } else if (verification?.status !== "verified") {
+          await signIn.prepareFirstFactorVerification({
+            strategy: "email_code",
+          })
+        }
+        setStep("verification")
       }
     } catch (err: any) {
       const clerkError = err?.errors?.[0]
@@ -113,7 +124,10 @@ export function LoginForm({
     setError("")
 
     try {
-      await signIn.mfa.verifyEmailCode({ code })
+      await signIn.attemptFirstFactorVerification({
+        strategy: "email_code",
+        code,
+      })
 
       if (signIn.status === "complete") {
         await signIn.finalize()
@@ -199,9 +213,19 @@ export function LoginForm({
                   <button
                     type="button"
                     className="underline underline-offset-4 hover:no-underline"
-                    onClick={() => {
+                    onClick={async () => {
                       setCode("")
                       setError("")
+                      if (!signIn) return
+                      try {
+                        await signIn.prepareFirstFactorVerification({
+                          strategy: "email_code",
+                        })
+                      } catch {
+                        setError(
+                          "Unable to resend code. Please try again."
+                        )
+                      }
                     }}
                   >
                     Try again
