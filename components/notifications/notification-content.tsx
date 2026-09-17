@@ -397,10 +397,8 @@ export function NotificationContent({
                       {/* Status Change Dropdown — only for hasFull */}
                       {hasFull && req.status === "PENDING" && (
                         <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="outline" size="sm">
-                              Status
-                            </Button>
+                          <DropdownMenuTrigger render={<Button variant="outline" size="sm" />}>
+                            Status
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
