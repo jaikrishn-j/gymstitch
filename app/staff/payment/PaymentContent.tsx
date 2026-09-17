@@ -888,6 +888,7 @@ function PaymentDataTable({
         </div>
       </div>
     </div>
+    </div>
   );
 }
 
