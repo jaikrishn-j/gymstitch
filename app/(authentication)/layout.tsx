@@ -1,6 +1,7 @@
-import { redirectByRole } from '@/utils/userRole'
+import { redirectAuthenticatedUser } from '@/utils/userRole'
 import React from 'react'
 import AuthFooter from './component/AuthFooter'
+
 
 
 type Props = {
@@ -9,7 +10,7 @@ type Props = {
 
 const layout = async (props: Props) => {
 
-  await redirectByRole("/", [], true);
+  await redirectAuthenticatedUser()
   
   return (
      <div className="flex min-h-svh flex-col bg-muted/30">

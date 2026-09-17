@@ -1,24 +1,24 @@
 "use client"
 
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { HandleSSOCallback } from "@clerk/nextjs"
+import { useClerk } from "@clerk/nextjs"
 
 export default function LoginSSOCallbackPage() {
   const router = useRouter()
+  const { handleRedirectCallback } = useClerk()
 
-  return (
-    <HandleSSOCallback
-      navigateToApp={({ session, decorateUrl }) => {
-        if (session?.currentTask) {
-          router.push(
-            decorateUrl(`/onboarding/${session.currentTask.key}`)
-          )
-          return
-        }
-        router.push(decorateUrl("/dashboard"))
-      }}
-      navigateToSignIn={() => router.push("/login")}
-      navigateToSignUp={() => router.push("/register")}
-    />
-  )
+  useEffect(() => {
+    handleRedirectCallback(
+      {},
+      (to) => {
+        router.push(to)
+        return Promise.resolve()
+      }
+    ).catch(() => {
+      router.push("/login")
+    })
+  }, [handleRedirectCallback, router])
+
+  return null
 }

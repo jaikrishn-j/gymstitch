@@ -53,7 +53,6 @@ export async function checkUserType(
 
 export async function redirectByRole(currentPath:string,allowedRoles: UserRole[] = [], noRedirect: boolean = false):Promise<UserProfile | void>{
     const user: UserProfile | null = await checkUserType(allowedRoles,noRedirect)
-
     if(user?.role === UserRole.ADMIN){
         if(currentPath.startsWith("/admin")){
             return user;
@@ -134,4 +133,66 @@ export async function checkUserRole(
         
         return false
     })
+}
+
+
+export async function redirectAuthenticatedUser() {
+    const user = await checkUserType(
+        [UserRole.ADMIN, UserRole.MEMBER, UserRole.STAFF],
+        true
+    );
+
+    if (!user) {
+        return;
+    }
+
+    if (user.role === UserRole.ADMIN) {
+        redirect("/admin/dashboard", RedirectType.replace);
+    }
+
+    if (user.role === UserRole.STAFF) {
+        redirect("/staff/dashboard", RedirectType.replace);
+    }
+
+    if (user.role === UserRole.MEMBER) {
+        const client = await clerkClient();
+        const clerkUser = await client.users.getUser(user.id);
+        const metadata = clerkUser.privateMetadata || {};
+
+        const requiredFields = [
+            "phone",
+            "residentialAddress",
+            "currentAddress",
+            "emergencyContactName",
+            "emergencyContactRelation",
+            "emergencyContactPhone",
+        ];
+
+        const isProfileComplete = requiredFields.every((field) => {
+            const value = metadata[field];
+
+            if (
+                value === undefined ||
+                value === null ||
+                value === ""
+            ) {
+                return false;
+            }
+
+            if (
+                typeof value === "object" &&
+                Object.keys(value).length === 0
+            ) {
+                return false;
+            }
+
+            return true;
+        });
+
+        if (!isProfileComplete) {
+            redirect("/onboarding", RedirectType.replace);
+        }
+
+        redirect("/dashboard", RedirectType.replace);
+    }
 }
