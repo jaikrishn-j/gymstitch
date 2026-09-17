@@ -42,6 +42,51 @@ export interface DashboardData {
   planProgress: number;
 }
 
+export interface Transaction {
+  id: number;
+  amount: string;
+  paidAt: Date;
+  paymentMethod: string;
+  paymentGateway: string | null;
+  gatewayPaymentId: string | null;
+  gatewayOrderId: string | null;
+  status: string;
+  description: string | null;
+  planName: string | null;
+  planDurationDays: number | null;
+  createdAt: Date;
+}
+
+export async function getMemberTransactions(): Promise<Transaction[]> {
+  const user = await redirectByRole("", [UserRole.MEMBER]);
+  if (!user) {
+    redirect("/login");
+  }
+  const clerkId = user.id;
+
+  const transactions = await db
+    .select({
+      id: paymentsTable.id,
+      amount: paymentsTable.amount,
+      paidAt: paymentsTable.paidAt,
+      paymentMethod: paymentsTable.paymentMethod,
+      paymentGateway: paymentsTable.paymentGateway,
+      gatewayPaymentId: paymentsTable.gatewayPaymentId,
+      gatewayOrderId: paymentsTable.gatewayOrderId,
+      status: paymentsTable.status,
+      description: paymentsTable.description,
+      planName: plansTable.name,
+      planDurationDays: paymentsTable.planDurationDays,
+      createdAt: paymentsTable.createdAt,
+    })
+    .from(paymentsTable)
+    .leftJoin(plansTable, eq(paymentsTable.planId, plansTable.id))
+    .where(eq(paymentsTable.clerkId, clerkId))
+    .orderBy(desc(paymentsTable.paidAt));
+
+  return transactions;
+}
+
 export async function getDashboardData(): Promise<DashboardData> {
   const user = await redirectByRole("", [UserRole.MEMBER]);
   if (!user) {
