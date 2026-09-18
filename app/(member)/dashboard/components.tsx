@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Plus, MoreHorizontal, Trash2 } from "lucide-react";
-import { createPlan, deletePlan } from "../actions";
+import { createPlan, deletePlan } from "@/app/admin/plans/action";
 import type { Plan } from "@/app/admin/plans/columns";
 
 import { Button } from "@/components/ui/button";
