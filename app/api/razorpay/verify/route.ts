@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/app/index";
-import { paymentsTable, plansTable } from "@/app/db/schema";
+import { paymentsTable, plansTable, gymSettingsTable } from "@/app/db/schema";
 import { checkUserType } from "@/utils/userRole";
 import { UserRole } from "@/types";
 
@@ -59,7 +59,29 @@ export async function POST(request: NextRequest) {
     }
 
     const durationDays = plan.durationInDays;
-    const paidAmount = plan.offerPrice || plan.amount;
+
+    const planAmount = Number(plan.offerPrice || plan.amount);
+
+    const [existingPayment] = await db
+      .select({ id: paymentsTable.id })
+      .from(paymentsTable)
+      .where(
+        eq(paymentsTable.clerkId, user.id),
+      )
+      .limit(1);
+
+    const isFirstPayment = !existingPayment;
+
+    let registrationFee = 0;
+    if (isFirstPayment) {
+      const [settings] = await db
+        .select({ registrationAmount: gymSettingsTable.registrationAmount })
+        .from(gymSettingsTable)
+        .limit(1);
+      registrationFee = Number(settings?.registrationAmount ?? 0);
+    }
+
+    const paidAmount = String(planAmount + registrationFee);
 
     const [newPayment] = await db
       .insert(paymentsTable)

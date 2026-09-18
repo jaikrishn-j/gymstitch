@@ -140,6 +140,12 @@ export function PlanSelection({
         },
       };
 
+      if (!window.Razorpay) {
+        throw new Error(
+          "Razorpay SDK not loaded. Please refresh the page and try again."
+        );
+      }
+
       const razorpay = new window.Razorpay(options);
       razorpay.on("payment.failed", function (response: any) {
         toast.error(

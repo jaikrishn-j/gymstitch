@@ -274,3 +274,50 @@ export const paymentRequestsTable = pgTable("payment_requests", {
         .notNull()
         .defaultNow(),
 });
+
+
+/* =========================================================
+   WEIGHT LOGS
+   ========================================================= */
+
+export const weightLogsTable = pgTable("weight_logs", {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+
+    clerkId: varchar({
+        length: 255,
+    }).notNull(),
+
+    weight: numeric({
+        precision: 5,
+        scale: 2,
+    }).notNull(),
+
+    loggedAt: timestamp()
+        .notNull()
+        .defaultNow(),
+});
+
+
+/* =========================================================
+   WEIGHT GOALS
+   ========================================================= */
+
+export const weightGoalsTable = pgTable("weight_goals", {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+
+    clerkId: varchar({
+        length: 255,
+    }).notNull(),
+
+    targetWeight: numeric({
+        precision: 5,
+        scale: 2,
+    }).notNull(),
+
+    createdAt: timestamp()
+        .notNull()
+        .defaultNow(),
+    updatedAt: timestamp()
+        .notNull()
+        .defaultNow(),
+});

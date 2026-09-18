@@ -5,6 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
+import Script from "next/script";
 
 const manrope = Manrope({subsets:['latin'],variable:'--font-sans'});
 
@@ -42,6 +43,10 @@ export default function RootLayout({
             <Toaster richColors position="top-right"/>
           </ThemeProvider>
         </ClerkProvider> 
+        <Script
+          src="https://checkout.razorpay.com/v1/checkout.js"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );

@@ -25,8 +25,6 @@ import { LogWeightDialog } from "../components/log-weight-dialog";
 import { WeightChart } from "../components/weight-chart";
 import { getDashboardData } from "./actions";
 
-
-
 function getGreeting() {
   const hour = new Date().getHours();
   if (hour < 5) return "Good Night";
@@ -34,6 +32,14 @@ function getGreeting() {
   if (hour < 17) return "Good Afternoon";
   if (hour < 21) return "Good Evening";
   return "Good Night";
+}
+
+/** Render "—" for missing/zero numeric values, otherwise the value + unit. */
+function dash(value: number | null | undefined, unit = "") {
+  if (value === null || value === undefined || Number.isNaN(value) || value === 0) {
+    return "—";
+  }
+  return unit ? `${value}${unit}` : `${value}`;
 }
 
 function StatCard({
@@ -78,7 +84,7 @@ function StatCard({
       <CardContent>
         <div className="text-2xl font-bold tracking-tight">
           {value}
-          {unit && (
+          {unit && value !== "—" && (
             <span className="ml-1 text-sm font-normal text-muted-foreground">
               {unit}
             </span>
@@ -102,18 +108,19 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 }
 
 export default async function DashboardPage() {
-  const { member, plan, daysUsed, planProgress } = await getDashboardData();
+  const { member, plan, daysUsed, planProgress, weightHistory, hasLoggedToday } =
+    await getDashboardData();
 
-  const weightHistory = [
-    { date: "Sep 01", weight: 75.2 },
-    { date: "Sep 03", weight: 74.8 },
-    { date: "Sep 05", weight: 74.5 },
-    { date: "Sep 08", weight: 74.1 },
-    { date: "Sep 10", weight: 73.7 },
-    { date: "Sep 12", weight: 73.2 },
-    { date: "Sep 14", weight: 72.8 },
-    { date: "Sep 17", weight: 72.4 },
-  ];
+  // Normalize things the UI relies on
+  const hasWeightData = weightHistory.length > 0;
+  const hasTargetWeight = member.targetWeight > 0;
+  const hasHeight = member.height > 0;
+  const hasBmi = member.bmi > 0;
+
+  const remainingWeight =
+    member.currentWeight > 0 && member.targetWeight > 0
+      ? (member.currentWeight - member.targetWeight).toFixed(1)
+      : "—";
 
   return (
     <main className="w-full min-h-screen bg-background pb-12">
@@ -143,7 +150,7 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <LogWeightDialog currentWeight={member.currentWeight} />
+          <LogWeightDialog currentWeight={member.currentWeight} hasLoggedToday={hasLoggedToday} />
         </div>
 
         {/* TAB NAVIGATION */}
@@ -158,32 +165,38 @@ export default async function DashboardPage() {
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatCard
                 title="Current Weight"
-                value={member.currentWeight.toString()}
-                unit="kg"
-                description="Latest measurement"
+                value={dash(member.currentWeight)}
+                unit={member.currentWeight > 0 ? "kg" : undefined}
+                description={
+                  member.currentWeight > 0 ? "Latest measurement" : "No weight logged yet"
+                }
                 tooltip="Measured today"
                 icon={Activity}
               />
               <StatCard
                 title="Target Weight"
-                value={member.targetWeight.toString()}
-                unit="kg"
-                description={`${(
-                  member.currentWeight - member.targetWeight
-                ).toFixed(1)} kg remaining`}
+                value={dash(member.targetWeight)}
+                unit={member.targetWeight > 0 ? "kg" : undefined}
+                description={
+                  hasTargetWeight && member.currentWeight > 0
+                    ? `${remainingWeight} kg remaining`
+                    : "No target set"
+                }
                 icon={Target}
               />
               <StatCard
                 title="Height"
-                value={member.height.toString()}
-                unit="cm"
-                description="Current height"
+                value={dash(member.height)}
+                unit={member.height > 0 ? "cm" : undefined}
+                description={hasHeight ? "Current height" : "Not provided"}
                 icon={Activity}
               />
               <StatCard
                 title="Body Mass Index"
-                value={member.bmi.toString()}
-                description="Normal Range (18.5 - 24.9)"
+                value={dash(member.bmi)}
+                description={
+                  hasBmi ? "Normal Range (18.5 - 24.9)" : "Add height & weight to calculate"
+                }
                 tooltip="Calculated automatically based on weight and height"
                 icon={HeartPulse}
               />
@@ -191,7 +204,25 @@ export default async function DashboardPage() {
 
             <div className="grid gap-6 lg:grid-cols-3">
               {/* Isolated Client Component for Chart */}
-              <WeightChart weightHistory={weightHistory} />
+              {hasWeightData ? (
+                <WeightChart weightHistory={weightHistory} />
+              ) : (
+                <Card className="lg:col-span-1">
+                  <CardHeader>
+                    <CardTitle className="text-base">Weight Progress</CardTitle>
+                    <CardDescription>Your recent weight trend</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col items-center justify-center py-10 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted">
+                      <Activity className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="mt-3 text-sm font-medium">No weight data</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Log your first weight to see your progress chart.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
 
               {plan.totalDays === 0 ? (
                 <Card className="flex flex-col items-center justify-center text-center p-8 lg:col-span-2">
@@ -284,7 +315,9 @@ export default async function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground font-medium">Frequency</p>
-                    <p className="text-sm font-semibold">{member.workoutFrequency}</p>
+                    <p className="text-sm font-semibold">
+                      {member.workoutFrequency || "—"}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -296,7 +329,7 @@ export default async function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground font-medium">Primary Goal</p>
-                    <p className="text-sm font-semibold">{member.goal}</p>
+                    <p className="text-sm font-semibold">{member.goal || "—"}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -308,7 +341,9 @@ export default async function DashboardPage() {
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground font-medium">Fitness Level</p>
-                    <p className="text-sm font-semibold">{member.fitnessLevel}</p>
+                    <p className="text-sm font-semibold">
+                      {member.fitnessLevel || "—"}
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -326,12 +361,28 @@ export default async function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="divide-y">
-                    <DetailRow label="Age" value={`${member.age} years`} />
-                    <DetailRow label="Gender" value={member.gender} />
-                    <DetailRow label="Height" value={`${member.height} cm`} />
-                    <DetailRow label="Current Weight" value={`${member.currentWeight} kg`} />
-                    <DetailRow label="Target Weight" value={`${member.targetWeight} kg`} />
-                    <DetailRow label="BMI" value={member.bmi.toString()} />
+                    <DetailRow
+                      label="Age"
+                      value={member.age > 0 ? `${member.age} years` : "—"}
+                    />
+                    <DetailRow label="Gender" value={member.gender || "—"} />
+                    <DetailRow
+                      label="Height"
+                      value={hasHeight ? `${member.height} cm` : "—"}
+                    />
+                    <DetailRow
+                      label="Current Weight"
+                      value={
+                        member.currentWeight > 0 ? `${member.currentWeight} kg` : "—"
+                      }
+                    />
+                    <DetailRow
+                      label="Target Weight"
+                      value={
+                        member.targetWeight > 0 ? `${member.targetWeight} kg` : "—"
+                      }
+                    />
+                    <DetailRow label="BMI" value={dash(member.bmi)} />
                   </div>
                 </CardContent>
               </Card>
@@ -345,13 +396,24 @@ export default async function DashboardPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="divide-y">
-                    <DetailRow label="Fitness Level" value={member.fitnessLevel} />
-                    <DetailRow label="Primary Goal" value={member.goal} />
-                    <DetailRow label="Workout Frequency" value={member.workoutFrequency} />
-                    <DetailRow label="Target Weight" value={`${member.targetWeight} kg`} />
+                    <DetailRow
+                      label="Fitness Level"
+                      value={member.fitnessLevel || "—"}
+                    />
+                    <DetailRow label="Primary Goal" value={member.goal || "—"} />
+                    <DetailRow
+                      label="Workout Frequency"
+                      value={member.workoutFrequency || "—"}
+                    />
+                    <DetailRow
+                      label="Target Weight"
+                      value={
+                        member.targetWeight > 0 ? `${member.targetWeight} kg` : "—"
+                      }
+                    />
                     <DetailRow
                       label="Remaining Weight to Lose"
-                      value={`${(member.currentWeight - member.targetWeight).toFixed(1)} kg`}
+                      value={remainingWeight === "—" ? "—" : `${remainingWeight} kg`}
                     />
                   </div>
                 </CardContent>

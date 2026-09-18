@@ -1,9 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, asc } from "drizzle-orm";
+import { clerkClient, auth } from "@clerk/nextjs/server";
 import { db } from "@/app/index";
-import { paymentsTable, plansTable } from "@/app/db/schema";
+import { paymentsTable, plansTable, weightLogsTable, weightGoalsTable } from "@/app/db/schema";
 import { redirectByRole } from "@/utils/userRole";
 import { UserRole } from "@/types";
 
@@ -35,11 +36,18 @@ export interface MemberData {
   workoutFrequency: string;
 }
 
+export interface WeightDataPoint {
+  date: string;
+  weight: number;
+}
+
 export interface DashboardData {
   member: MemberData;
   plan: PlanData;
   daysUsed: number;
   planProgress: number;
+  weightHistory: WeightDataPoint[];
+  hasLoggedToday: boolean;
 }
 
 export interface Transaction {
@@ -94,26 +102,76 @@ export async function getDashboardData(): Promise<DashboardData> {
   }
   const clerkId = user.id;
 
-  const userPayments = await db
-    .select({
-      paymentId: paymentsTable.id,
-      planId: paymentsTable.planId,
-      planDurationDays: paymentsTable.planDurationDays,
-      paidAt: paymentsTable.paidAt,
-      status: paymentsTable.status,
-      planName: plansTable.name,
-      planDurationInDays: plansTable.durationInDays,
-    })
-    .from(paymentsTable)
-    .leftJoin(plansTable, eq(paymentsTable.planId, plansTable.id))
-    .where(
-      and(
-        eq(paymentsTable.clerkId, clerkId),
-        eq(paymentsTable.status, "SUCCESS")
-      )
-    )
-    .orderBy(desc(paymentsTable.paidAt));
+  // Fetch height from Clerk private metadata
+  const client = await clerkClient();
+  const clerkUser = await client.users.getUser(clerkId);
+  const metadata = clerkUser.privateMetadata || {};
+  const height = typeof metadata.height === "number" ? metadata.height : 0;
 
+  // Fetch weight logs (newest first), weight goals, and payments in parallel
+  const [weightLogs, goalRows, userPayments] = await Promise.all([
+    db
+      .select()
+      .from(weightLogsTable)
+      .where(eq(weightLogsTable.clerkId, clerkId))
+      .orderBy(desc(weightLogsTable.loggedAt))
+      .limit(30),
+
+    db
+      .select()
+      .from(weightGoalsTable)
+      .where(eq(weightGoalsTable.clerkId, clerkId))
+      .orderBy(desc(weightGoalsTable.createdAt))
+      .limit(1),
+
+    db
+      .select({
+        paymentId: paymentsTable.id,
+        planId: paymentsTable.planId,
+        planDurationDays: paymentsTable.planDurationDays,
+        paidAt: paymentsTable.paidAt,
+        status: paymentsTable.status,
+        planName: plansTable.name,
+        planDurationInDays: plansTable.durationInDays,
+      })
+      .from(paymentsTable)
+      .leftJoin(plansTable, eq(paymentsTable.planId, plansTable.id))
+      .where(
+        and(
+          eq(paymentsTable.clerkId, clerkId),
+          eq(paymentsTable.status, "SUCCESS")
+        )
+      )
+      .orderBy(asc(paymentsTable.paidAt)),
+  ]);
+
+  // --- Weight ---
+  const currentWeight =
+    weightLogs.length > 0 ? Number(weightLogs[0].weight) : 0;
+  const targetWeight =
+    goalRows.length > 0 ? Number(goalRows[0].targetWeight) : 0;
+
+  const hasLoggedToday =
+    weightLogs.length > 0 &&
+    new Date(weightLogs[0].loggedAt).toDateString() === new Date().toDateString();
+
+  const weightHistory: WeightDataPoint[] = [...weightLogs]
+    .reverse()
+    .map((log) => ({
+      date: new Date(log.loggedAt).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+      }),
+      weight: Number(log.weight),
+    }));
+
+  // --- BMI ---
+  const bmi =
+    height > 0 && currentWeight > 0
+      ? Number((currentWeight / Math.pow(height / 100, 2)).toFixed(1))
+      : 0;
+
+  // --- Plan ---
   const durations = userPayments.map((p) =>
     p.planDurationDays ?? p.planDurationInDays ?? 0
   );
@@ -136,26 +194,29 @@ export async function getDashboardData(): Promise<DashboardData> {
     Math.floor((today.getTime() - startDate.getTime()) / msPerDay)
   );
   const daysRemaining = Math.max(0, totalDays - daysUsed);
-  const planProgress = totalDays > 0 ? Math.round((daysUsed / totalDays) * 100) : 0;
+  const planProgress =
+    totalDays > 0 ? Math.round((daysUsed / totalDays) * 100) : 0;
+
+  const activePlanName =
+    userPayments.length > 0
+      ? userPayments[0].planName ?? "Custom Plan"
+      : "No Active Plan";
 
   const member: MemberData = {
     name: user.firstName ?? "Member",
-    age: 24,
-    gender: "Male",
-    height: 178,
-    currentWeight: 72.4,
-    targetWeight: 68,
-    bmi: 22.8,
-    fitnessLevel: "Intermediate",
-    goal: "Weight Loss",
-    workoutFrequency: "4 days / week",
+    age: 0,
+    gender: "—",
+    height,
+    currentWeight,
+    targetWeight,
+    bmi,
+    fitnessLevel: "—",
+    goal: "—",
+    workoutFrequency: "—",
   };
 
   const plan: PlanData = {
-    name:
-      userPayments.length > 0
-        ? userPayments[0].planName ?? "Custom Plan"
-        : "No Active Plan",
+    name: activePlanName,
     startedAt: startDate.toLocaleDateString("en-IN", {
       day: "numeric",
       month: "long",
@@ -179,5 +240,37 @@ export async function getDashboardData(): Promise<DashboardData> {
     })),
   };
 
-  return { member, plan, daysUsed, planProgress };
+  return { member, plan, daysUsed, planProgress, weightHistory, hasLoggedToday };
+}
+
+export async function logWeight(
+  weight: number
+): Promise<{ error?: string }> {
+  const { userId } = await auth();
+  if (!userId) redirect("/login");
+
+  if (!weight || weight <= 0) {
+    return { error: "Please enter a valid weight." };
+  }
+
+  // Check if already logged today
+  const today = new Date();
+  const todayStr = today.toDateString();
+  const [existing] = await db
+    .select({ loggedAt: weightLogsTable.loggedAt })
+    .from(weightLogsTable)
+    .where(eq(weightLogsTable.clerkId, userId))
+    .orderBy(desc(weightLogsTable.loggedAt))
+    .limit(1);
+
+  if (existing && new Date(existing.loggedAt).toDateString() === todayStr) {
+    return { error: "You have already logged your weight today." };
+  }
+
+  await db.insert(weightLogsTable).values({
+    clerkId: userId,
+    weight: String(weight),
+  });
+
+  return {};
 }
