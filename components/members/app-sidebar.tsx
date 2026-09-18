@@ -50,7 +50,7 @@ const MemberSidebar = async () => {
     }
 
     const fullName =
-        `${profile.firstName ?? ""} ${profile.lastName ?? ""}`.trim() ||
+        `${profile.firstName ?? ""} ${profile.lastname ?? ""}`.trim() ||
         "Member";
 
     return (
@@ -61,7 +61,7 @@ const MemberSidebar = async () => {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton
-                            asChild
+                            render={<Link href="/dashboard" className="flex items-center gap-3" />}
                             className="
                                 group
                                 flex h-16 items-center gap-3
@@ -72,7 +72,6 @@ const MemberSidebar = async () => {
                                 hover:bg-sidebar-accent
                             "
                         >
-                            <Link href="/dashboard" className="flex items-center gap-3">
                                 <div
                                     className="
                                         relative
@@ -98,7 +97,6 @@ const MemberSidebar = async () => {
                                         Member Portal
                                     </p>
                                 </div>
-                            </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
@@ -118,21 +116,16 @@ const MemberSidebar = async () => {
                         return (
                             <SidebarMenuItem key={item.url}>
                                 <SidebarMenuButton
-                                    asChild
+                                    render={<Link href={item.url} className="flex items-center gap-3" />}
                                     tooltip={item.title}
                                     className="h-10 rounded-xl px-2.5 font-medium hover:bg-sidebar-accent"
                                 >
-                                    <Link
-                                        href={item.url}
-                                        className="flex items-center gap-3"
-                                    >
                                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                                             <Icon className="h-[15px] w-[15px]" />
                                         </span>
                                         <span className="truncate">
                                             {item.title}
                                         </span>
-                                    </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
                         );
@@ -146,25 +139,27 @@ const MemberSidebar = async () => {
                     <SidebarMenu>
                         <SidebarMenuItem>
                             <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    {/* NOTE: single element, no nested button */}
-                                    <div
-                                        role="button"
-                                        tabIndex={0}
-                                        className="
-                                            group flex w-full cursor-pointer items-center gap-3
-                                            rounded-lg bg-background
-                                            px-2.5 py-2
-                                            text-left
-                                            shadow-sm ring-1 ring-border/60
-                                            outline-none transition-colors
-                                            hover:bg-sidebar-accent
-                                            focus-visible:ring-2 focus-visible:ring-sidebar-ring
-                                            data-[state=open]:bg-sidebar-accent
-                                            group-data-[collapsible=icon]/sidebar-wrapper:justify-center
-                                            group-data-[collapsible=icon]/sidebar-wrapper:px-0
-                                        "
-                                    >
+                                <DropdownMenuTrigger
+                                    render={
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
+                                            className="
+                                                group flex w-full cursor-pointer items-center gap-3
+                                                rounded-lg bg-background
+                                                px-2.5 py-2
+                                                text-left
+                                                shadow-sm ring-1 ring-border/60
+                                                outline-none transition-colors
+                                                hover:bg-sidebar-accent
+                                                focus-visible:ring-2 focus-visible:ring-sidebar-ring
+                                                data-[state=open]:bg-sidebar-accent
+                                                group-data-[collapsible=icon]/sidebar-wrapper:justify-center
+                                                group-data-[collapsible=icon]/sidebar-wrapper:px-0
+                                            "
+                                        />
+                                    }
+                                >
                                         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted ring-1 ring-border">
                                             {profile.imageUrl ? (
                                                 // eslint-disable-next-line @next/next/no-img-element
@@ -195,7 +190,6 @@ const MemberSidebar = async () => {
                                                 group-data-[collapsible=icon]/sidebar-wrapper:hidden
                                             "
                                         />
-                                    </div>
                                 </DropdownMenuTrigger>
 
                                 <DropdownMenuContent
@@ -231,24 +225,18 @@ const MemberSidebar = async () => {
 
                                         <DropdownMenuSeparator />
 
-                                        <DropdownMenuItem asChild>
-                                            <Link
-                                                href="/dashboard/profile"
-                                                className="flex cursor-pointer items-center gap-2"
-                                            >
+                                        <DropdownMenuItem
+                                            render={<Link href="/dashboard/profile" className="flex cursor-pointer items-center gap-2" />}
+                                        >
                                                 <User className="h-4 w-4 text-muted-foreground" />
                                                 <span>Profile</span>
-                                            </Link>
                                         </DropdownMenuItem>
 
-                                        <DropdownMenuItem asChild>
-                                            <Link
-                                                href="/dashboard/settings"
-                                                className="flex cursor-pointer items-center gap-2"
-                                            >
+                                        <DropdownMenuItem
+                                            render={<Link href="/dashboard/settings" className="flex cursor-pointer items-center gap-2" />}
+                                        >
                                                 <Settings className="h-4 w-4 text-muted-foreground" />
                                                 <span>Settings</span>
-                                            </Link>
                                         </DropdownMenuItem>
 
                                         <DropdownMenuSeparator />
