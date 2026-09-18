@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
         amount: totalAmountPaise,
         currency: order.currency,
         planName: plan.name,
-        razorpayKeyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        razorpayKeyId: process.env.RAZORPAY_KEY_ID,
       },
     });
   } catch (error) {
