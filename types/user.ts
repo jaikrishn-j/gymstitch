@@ -11,4 +11,6 @@ export interface UserProfile {
     lastname: string | null
     imageUrl: string | null
     role: UserRole
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    privateMetadata?: Record<string, any>
 }

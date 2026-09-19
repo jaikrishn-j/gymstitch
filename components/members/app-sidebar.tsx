@@ -42,11 +42,13 @@ const navItems = [
     { title: "Settings", url: "/dashboard/settings", icon: Settings },
 ];
 
-const MemberSidebar = async () => {
-    const profile: UserProfile | null = await checkUserType([UserRole.MEMBER]);
-
+const MemberSidebar = async ({ profile }: { profile?: UserProfile | null }) => {
     if (!profile) {
-        redirect("/login", RedirectType.replace);
+        const fetchedProfile: UserProfile | null = await checkUserType([UserRole.MEMBER]);
+        if (!fetchedProfile) {
+            redirect("/login", RedirectType.replace);
+        }
+        profile = fetchedProfile;
     }
 
     const fullName =
@@ -141,9 +143,8 @@ const MemberSidebar = async () => {
                             <DropdownMenu>
                                 <DropdownMenuTrigger
                                     render={
-                                        <div
-                                            role="button"
-                                            tabIndex={0}
+                                        <button
+                                            type="button"
                                             className="
                                                 group flex w-full cursor-pointer items-center gap-3
                                                 rounded-lg bg-background
