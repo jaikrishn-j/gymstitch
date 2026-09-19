@@ -48,7 +48,8 @@ export async function checkUserType(
         firstName: user.firstName,
         lastname: user.lastName, // Kept 'lastname' as per your interface structure
         imageUrl: user.imageUrl,
-        role: userRole
+        role: userRole,
+        privateMetadata: user.privateMetadata as Record<string, any>,
     };
 }
 
@@ -67,9 +68,7 @@ export async function redirectByRole(currentPath:string,allowedRoles: UserRole[]
         return redirect("/staff", RedirectType.replace)
     }
     if(user?.role === UserRole.MEMBER){
-        const client = await clerkClient()
-        const clerkUser = await client.users.getUser(user.id)
-        const metadata = clerkUser.privateMetadata || {}
+        const metadata = user.privateMetadata || {}
 
         const requiredFields = [
             "phone",
@@ -156,9 +155,7 @@ export async function redirectAuthenticatedUser() {
     }
 
     if (user.role === UserRole.MEMBER) {
-        const client = await clerkClient();
-        const clerkUser = await client.users.getUser(user.id);
-        const metadata = clerkUser.privateMetadata || {};
+        const metadata = user.privateMetadata || {};
 
         const requiredFields = [
             "phone",

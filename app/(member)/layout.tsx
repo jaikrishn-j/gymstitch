@@ -8,7 +8,7 @@ import {
     SidebarTrigger,
 } from "@/components/ui/sidebar";
 
-import { UserRole } from "@/types";
+import { UserProfile, UserRole } from "@/types";
 import { redirectByRole } from "@/utils/userRole";
 
 import { Bell, Dumbbell, ChevronRight } from "lucide-react";
@@ -23,7 +23,7 @@ type Props = {
 const Layout = async ({ children }: Props) => {
     // All roles are allowed through the gate so `redirectByRole` can dispatch
     // admins/staff to their own dashboards instead of rejecting them.
-    await redirectByRole("", [
+    const profile = await redirectByRole("", [
         UserRole.MEMBER,
         UserRole.ADMIN,
         UserRole.STAFF,
@@ -31,7 +31,7 @@ const Layout = async ({ children }: Props) => {
 
     return (
         <SidebarProvider>
-            <MemberSidebar />
+            <MemberSidebar profile={profile ?? null} />
 
             <SidebarInset>
                 <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-4 transition-[height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
