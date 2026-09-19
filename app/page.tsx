@@ -46,14 +46,14 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <Show when="signed-out">
               <Link href='/login' className="hidden sm:block">
-                <Button variant="ghost" size="sm">Log in</Button>
+                <Button variant="ghost" >Log in</Button>
               </Link>
                <Link href='/register'>
-                <Button size="sm">Get Started</Button>
+                <Button >Get Started</Button>
               </Link>
             </Show>
             <Show when="signed-in">
-              <Button variant="secondary" size="sm" asChild>
+              <Button variant="secondary"  >
                 <Link href="/dashboard">Dashboard</Link>
               </Button>
               <UserButton />
@@ -91,7 +91,7 @@ export default function Home() {
                 </Button>
               </SignInButton>
             </Show>
-            <Button size="lg" variant="outline" asChild className="w-full sm:w-auto">
+            <Button size="lg" variant="outline"  className="w-full sm:w-auto">
               <a href="#features">Explore Features</a>
             </Button>
           </div>
@@ -236,7 +236,7 @@ export default function Home() {
               </SignInButton>
             </Show>
             <Show when="signed-in">
-              <Button size="lg" asChild>
+              <Button size="lg" >
                 <Link href="/dashboard">Open Dashboard</Link>
               </Button>
             </Show>
