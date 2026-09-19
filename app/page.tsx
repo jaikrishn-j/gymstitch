@@ -248,15 +248,26 @@ export default function Home() {
 }
 
 // Shadcn Default Feature Card
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string; }) {
+function FeatureCard({
+  icon,
+  title,
+  description,
+}: {
+  icon: React.ReactElement<{ className?: string }>;
+  title: string;
+  description: string;
+}) {
   return (
     <Card className="border-none bg-muted/30 shadow-none">
       <CardHeader>
         <div className="mb-2 text-primary">
-          {React.cloneElement(icon as React.ReactElement, { className: "h-6 w-6" })}
+          {React.cloneElement(icon, {
+            className: "h-6 w-6",
+          })}
         </div>
         <CardTitle className="text-base font-semibold">{title}</CardTitle>
       </CardHeader>
+
       <CardContent>
         <p className="text-sm text-muted-foreground">{description}</p>
       </CardContent>
